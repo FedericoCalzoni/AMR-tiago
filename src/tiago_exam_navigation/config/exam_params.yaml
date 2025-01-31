@@ -1,0 +1,6 @@
+navigation:
+  goal_tolerance: 0.15
+  planner: "RRTstar"
+manipulation:
+  approach_height: 0.2
+  retreat_height: 0.3

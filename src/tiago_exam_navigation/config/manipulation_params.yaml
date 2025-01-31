@@ -1,0 +1,4 @@
+approach_height: 0.2
+retreat_height: 0.3
+grasp_offset: 0.05
+object_dimensions: [0.06, 0.06, 0.06]
