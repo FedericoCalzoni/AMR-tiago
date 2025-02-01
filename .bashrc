@@ -112,7 +112,7 @@ rebuild-ws() {
 rebuild-AMR-tiago() {
     # Rebuild AMR-tiago
     echo "Rebuilding AMR-tiago..."
-    cd ~/AMR-tiago || { echo "Error: AMR-tiago directory not found." >&2; return 1; }
+    cd ~/AMR-tiago/exam_ws || { echo "Error: AMR-tiago directory not found." >&2; return 1; }
     trash build install log  # Clean existing build artifacts
     colcon build || return 1  # Build the workspace
     
@@ -126,8 +126,8 @@ alias la='ls -A'
 alias l='ls -CF'
 alias run-gazebo='ros2 launch tiago_gazebo tiago_gazebo.launch.py group_number:=32 moveit:=true'
 alias run-rviz-slam='ros2 launch tiago_2dnav tiago_nav_bringup.launch.py is_public_sim:=false rviz:=True slam:=True'
-alias run-rviz='ros2 launch tiago_2dnav tiago_nav_bringup.launch.py is_public_sim:=false rviz:=True map_path:=/home/student/maps'
-alias run-savemap='ros2 run nav2_map_server map_saver_cli -f new_map'
+alias run-rviz='ros2 launch tiago_2dnav tiago_nav_bringup.launch.py is_public_sim:=false rviz:=True map_path:=~/AMR-tiago/maps'
+alias run-savemap='ros2 run nav2_map_server map_saver_cli -f ~/AMR-new_map'
 alias run-teleop='ros2 run teleop_twist_keyboard teleop_twist_keyboard'
 alias run-explore-lite='ros2 launch explore_lite explore.launch.py'
 alias run-navigate-to-pose='ros2 run tiago_exam_navigation navigate_to_pose'
@@ -163,7 +163,7 @@ export TURTLEBOT3_MODEL=burger
 # export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
 
 source /opt/ros/humble/setup.bash
-source /home/student/ros2_ws/install/setup.bash
-source /home/student/tiago_ws/install/setup.bash
-source /home/student/tiago_ws/src/install/setup.bash
-source /home/student/AMR-tiago/src/install/setup.bash
+source ~/ros2_ws/install/setup.bash
+source ~/tiago_ws/install/setup.bash
+source ~/tiago_ws/src/install/setup.bash
+source ~/AMR-tiago/exam_ws/install/setup.bash
