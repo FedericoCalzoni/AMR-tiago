@@ -1,3 +1,0 @@
-0000000000000000000000000000000000000000 9c121aebe52d28f3846a1cbb6ebb017cc85f9e53 Federico Calzoni <federicocalzoni01@gmail.com> 1737641651 +0100	clone: from https://github.com/robo-friends/m-explore-ros2.git
-9c121aebe52d28f3846a1cbb6ebb017cc85f9e53 2f7e129fde170f5acc2fad7afad24b129dc1d988 Federico Calzoni <federicocalzoni01@gmail.com> 1737681390 +0100	commit: fix deprecation warning
-2f7e129fde170f5acc2fad7afad24b129dc1d988 9c121aebe52d28f3846a1cbb6ebb017cc85f9e53 Federico Calzoni <federicocalzoni01@gmail.com> 1737681476 +0100	reset: moving to HEAD~
