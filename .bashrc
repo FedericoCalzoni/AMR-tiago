@@ -95,13 +95,13 @@ fi
 rebuild-ws() {
     # Rebuild ros2_ws
     echo "Rebuilding ros2_ws..."
-    cd ~/ros2_ws || { echo "Error: ros2_ws directory not found." >&2; return 1; }
+    cd ~/AMR-tiago/ros2_ws || { echo "Error: ros2_ws directory not found." >&2; return 1; }
     trash build install log  # Clean existing build artifacts
     colcon build || return 1  # Build the workspace
     
     # Rebuild tiago_ws
     echo "Rebuilding tiago_ws..."
-    cd ~/tiago_ws || { echo "Error: tiago_ws directory not found." >&2; return 1; }
+    cd ~/AMR-tiago/tiago_ws || { echo "Error: tiago_ws directory not found." >&2; return 1; }
     trash build install log  # Clean existing build artifacts
     colcon build || return 1  # Build the workspace
     
