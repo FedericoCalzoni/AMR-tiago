@@ -1,0 +1,102 @@
+#!/bin/bash
+
+###########################################
+# Personal Configuration [Edit this section]
+###########################################
+
+# setup your ssh target and the position of the local ubm-f1tenth repo
+
+# warning: the tmux pane numbers are 1-indexed
+# see README.md for more information
+
+# if you want to add more configurations the only thing you need to do are:
+# 1) add an new entry to the CONFIGS array
+# 2) add a new function that sets up the tmux session
+
+declare -A CONFIGS=(
+    ["mapping"]="gaezbo, rviz-SLAM, run-explore-lite"
+    # Add more configurations here
+)
+
+mapping(){
+    
+    # pane 1
+    tmux send-keys "run-gazebo"
+    tmux split-window -v -p 10  # Split vertically
+
+    # pane 4
+    tmux send-keys "echo general purpose ssh terminal" C-m
+
+    # pane 2
+    tmux select-pane -t 1
+    tmux split-window -h -p 66  # Split horizontally
+    tmux send-keys "run-rviz-SLAM"
+
+    # pane 3
+    tmux split-window -h -p 66  # Split horizontally
+    tmux send-keys "run-explore-lite"
+
+    # pane 5
+    tmux select-pane -t 4
+    tmux split-window -h -p 1
+    tmux send-keys "micro $SETUP_TMUX_FOLDER/mapping_notes.txt" C-m
+    tmux select-pane -t 4
+
+    #tmux new-window -n "tab name"
+}
+
+# Add more functions here
+
+###########################################
+# Helper Functions
+###########################################
+
+show_help() {
+    echo "Usage: $0 <configuration>"
+    echo ""
+    echo "Available configurations:"
+    for config in "${!CONFIGS[@]}"; do
+        printf "  %-10s %s\n" "- $config" "${CONFIGS[$config]}"
+    done
+}
+
+validate_config() {
+    local config=$1
+    if [ -z "$config" ] || [ -z "${CONFIGS[$config]}" ]; then
+        show_help
+        exit 1
+    fi
+}
+
+###########################################
+# Main Script
+###########################################
+
+SESSION="AMR-projct"
+SETUP_TMUX_FOLDER=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
+# Validate input
+validate_config "$1"
+
+# Check if tmux session already exists
+tmux has-session -t $SESSION 2>/dev/null
+
+# If session does not exist, create it
+if [ $? != 0 ]; then
+    tmux new-session -d -s $SESSION -n "$1"
+    $1
+else
+    echo "Session already exists. Should I kill it and start a new one? [y/n]"
+    read -r response
+    if [ "$response" == "y" ]; then
+        tmux kill-session -t $SESSION
+        tmux new-session -d -s $SESSION -n "$1"
+        $1
+    else
+        echo "Exiting..."
+        exit 0
+    fi
+fi
+
+# Attach to session
+tmux attach-session -t $SESSION

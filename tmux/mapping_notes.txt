@@ -1,0 +1,16 @@
+1 - BringUP
+2 - RViz (Scans)
+4 - MappingClosure
+5 - save maps
+
+ctrl-b q        change pane
+Ctrl-b c        create tab
+ctrl-b <number> change tab
+Ctrl-b "        horizontal split
+Ctrl-b %        vertical split
+Ctrl-b &        kill everything
+
+ubm@172.18.42.38
+connect-controller-philly
+ros2 topic echo /sensors/core/
+scp -r ubm@<IP-of-the-car>:/home/ubm/repo/maps/YYYYMMDD/ /path/on/your/pc
