@@ -49,6 +49,7 @@ mapping(){
     tmux select-pane -t 4
 
     #tmux new-window -n "tab name"
+    tmux select-pane -t 1
 }
 
 # Add more functions here
