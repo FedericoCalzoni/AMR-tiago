@@ -338,7 +338,7 @@ void Explore::returnToInitialPose()
 
 bool Explore::goalOnBlacklist(const geometry_msgs::msg::Point& goal)
 {
-  constexpr static size_t tolerace = 5;
+  constexpr static size_t tolerace = 10;
   nav2_costmap_2d::Costmap2D* costmap2d = costmap_client_.getCostmap();
 
   // check if a goal is on the blacklist for goals that we're pursuing
