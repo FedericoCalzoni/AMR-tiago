@@ -163,7 +163,7 @@ export TURTLEBOT3_MODEL=burger
 # export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
 
 source /opt/ros/humble/setup.bash
-source ~/ros2_ws/install/setup.bash
-source ~/tiago_ws/install/setup.bash
-source ~/tiago_ws/src/install/setup.bash
+source ~/AMR-tiago/ros2_ws/install/setup.bash
+source ~/AMR-tiago/tiago_ws/install/setup.bash
+source ~/AMR-tiago/tiago_ws/src/install/setup.bash
 source ~/AMR-tiago/exam_ws/install/setup.bash
