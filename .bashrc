@@ -123,26 +123,26 @@ rebuild-AMR-tiago() {
 # Fresh rebuild for ROS 2 and Tiago workspaces
 build-ws() {
     # Rebuild ros2_ws
-    echo "Rebuilding ros2_ws..."
+    echo "Building ros2_ws..."
     cd ~/AMR-tiago/ros2_ws || { echo "Error: ros2_ws directory not found." >&2; return 1; }
     colcon build || return 1  # Build the workspace
     
     # Rebuild tiago_ws
-    echo "Rebuilding tiago_ws..."
+    echo "Building tiago_ws..."
     cd ~/AMR-tiago/tiago_ws || { echo "Error: tiago_ws directory not found." >&2; return 1; }
     colcon build || return 1  # Build the workspace
     
-    echo "Both workspaces rebuilt successfully!"
+    echo "Both workspaces built successfully!"
     cd ~  # Return to home directory
 }
 
 build-AMR-tiago() {
     # Rebuild AMR-tiago
-    echo "Rebuilding AMR-tiago..."
+    echo "Building AMR-tiago..."
     cd ~/AMR-tiago/exam_ws || { echo "Error: AMR-tiago directory not found." >&2; return 1; }
     colcon build || return 1  # Build the workspace
     
-    echo "AMR-tiago workspace rebuilt successfully!"
+    echo "AMR-tiago workspace built successfully!"
     cd ~  # Return to home directory
 }
 
