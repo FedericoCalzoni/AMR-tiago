@@ -21,25 +21,30 @@ declare -A CONFIGS=(
 mapping(){
     
     # pane 1
+    tmux send-keys C-l
     tmux send-keys "run-gazebo"
     tmux split-window -v -p 10  # Split vertically
 
     # pane 4
+    tmux send-keys C-l
     tmux send-keys "echo general purpose ssh terminal" C-m
     tmux send-keys "run-save-map"
 
     # pane 2
     tmux select-pane -t 1
     tmux split-window -h -p 66  # Split horizontally
+    tmux send-keys C-l
     tmux send-keys "run-rviz-slam"
 
     # pane 3
     tmux split-window -h -p 66  # Split horizontally
+    tmux send-keys C-l
     tmux send-keys "run-explore-lite"
 
     # pane 5
     tmux select-pane -t 4
     tmux split-window -h -p 1
+    tmux send-keys C-l
     tmux send-keys "micro $SETUP_TMUX_FOLDER/mapping_notes.txt" C-m
     tmux select-pane -t 4
 
