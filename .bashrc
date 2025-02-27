@@ -120,12 +120,38 @@ rebuild-AMR-tiago() {
     cd ~  # Return to home directory
 }
 
+# Fresh rebuild for ROS 2 and Tiago workspaces
+build-ws() {
+    # Rebuild ros2_ws
+    echo "Rebuilding ros2_ws..."
+    cd ~/AMR-tiago/ros2_ws || { echo "Error: ros2_ws directory not found." >&2; return 1; }
+    colcon build || return 1  # Build the workspace
+    
+    # Rebuild tiago_ws
+    echo "Rebuilding tiago_ws..."
+    cd ~/AMR-tiago/tiago_ws || { echo "Error: tiago_ws directory not found." >&2; return 1; }
+    colcon build || return 1  # Build the workspace
+    
+    echo "Both workspaces rebuilt successfully!"
+    cd ~  # Return to home directory
+}
+
+build-AMR-tiago() {
+    # Rebuild AMR-tiago
+    echo "Rebuilding AMR-tiago..."
+    cd ~/AMR-tiago/exam_ws || { echo "Error: AMR-tiago directory not found." >&2; return 1; }
+    colcon build || return 1  # Build the workspace
+    
+    echo "AMR-tiago workspace rebuilt successfully!"
+    cd ~  # Return to home directory
+}
+
 # some more ls aliases
 alias ll='ls -alF'
 alias la='ls -A'
 alias l='ls -CF'
 alias tmux_setup='bash ~/AMR-tiago/tmux/setup_tmux.sh'
-alias run-gazebo='ros2 launch tiago_gazebo tiago_gazebo.launch.py group_number:=32 moveit:=true'
+alias run-gazebo='ros2 launch tiago_gazebo tiago_gazebo.launch.py group_number:=32 moveit:=True'
 alias run-rviz-slam='ros2 launch tiago_2dnav tiago_nav_bringup.launch.py is_public_sim:=false rviz:=True slam:=True'
 alias run-rviz='ros2 launch tiago_2dnav tiago_nav_bringup.launch.py is_public_sim:=false rviz:=True map_path:=/home/$USER/AMR-tiago/maps'
 alias run-savemap='ros2 run nav2_map_server map_saver_cli -f ~/AMR-new_map'
@@ -166,5 +192,5 @@ export TURTLEBOT3_MODEL=burger
 source /opt/ros/humble/setup.bash
 source ~/AMR-tiago/ros2_ws/install/setup.bash
 source ~/AMR-tiago/tiago_ws/install/setup.bash
-#source ~/AMR-tiago/tiago_ws/src/install/setup.bash
+# source ~/AMR-tiago/tiago_ws/src/install/setup.bash
 source ~/AMR-tiago/exam_ws/install/setup.bash
