@@ -26,11 +26,12 @@ mapping(){
 
     # pane 4
     tmux send-keys "echo general purpose ssh terminal" C-m
+    tmux send-keys "run-save-map"
 
     # pane 2
     tmux select-pane -t 1
     tmux split-window -h -p 66  # Split horizontally
-    tmux send-keys "run-rviz-SLAM"
+    tmux send-keys "run-rviz-slam"
 
     # pane 3
     tmux split-window -h -p 66  # Split horizontally

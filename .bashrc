@@ -124,6 +124,7 @@ rebuild-AMR-tiago() {
 alias ll='ls -alF'
 alias la='ls -A'
 alias l='ls -CF'
+alias tmux_setup='bash ~/AMR-tiago/tmux/setup_tmux.sh'
 alias run-gazebo='ros2 launch tiago_gazebo tiago_gazebo.launch.py group_number:=32 moveit:=true'
 alias run-rviz-slam='ros2 launch tiago_2dnav tiago_nav_bringup.launch.py is_public_sim:=false rviz:=True slam:=True'
 alias run-rviz='ros2 launch tiago_2dnav tiago_nav_bringup.launch.py is_public_sim:=false rviz:=True map_path:=/home/$USER/AMR-tiago/maps'
