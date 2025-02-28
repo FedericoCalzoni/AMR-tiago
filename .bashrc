@@ -146,6 +146,13 @@ build-AMR-tiago() {
     cd ~  # Return to home directory
 }
 
+run-save-map() {
+    version=$(date +%Y%m%d%H%M%S)
+    mv ~/AMR-tiago/maps/map.pgm ~/AMR-tiago/maps/map_$version.pgm
+    mv ~/AMR-tiago/maps/map.yaml ~/AMR-tiago/maps/map_$version.yaml
+    ros2 run nav2_map_server map_saver_cli -f ~/AMR-tiago/maps/map
+}
+
 # some more ls aliases
 alias ll='ls -alF'
 alias la='ls -A'
@@ -154,7 +161,6 @@ alias tmux_setup='bash ~/AMR-tiago/tmux/setup_tmux.sh'
 alias run-gazebo='ros2 launch tiago_gazebo tiago_gazebo.launch.py group_number:=32 moveit:=True'
 alias run-rviz-slam='ros2 launch tiago_2dnav tiago_nav_bringup.launch.py is_public_sim:=false rviz:=True slam:=True'
 alias run-rviz='ros2 launch tiago_2dnav tiago_nav_bringup.launch.py is_public_sim:=false rviz:=True map_path:=/home/$USER/AMR-tiago/maps'
-alias run-savemap='ros2 run nav2_map_server map_saver_cli -f ~/AMR-new_map'
 alias run-teleop='ros2 run teleop_twist_keyboard teleop_twist_keyboard'
 alias run-explore-lite='ros2 launch explore_lite explore.launch.py'
 alias run-navigate-to-pose='ros2 run tiago_exam_navigation navigate_to_pose'
@@ -187,7 +193,7 @@ fi
 export ROS_DOMAIN_ID=30 #TURTLEBOT3
 export LC_NUMERIC="en_US.UTF-8"
 export TURTLEBOT3_MODEL=burger
-# export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
 
 source /opt/ros/humble/setup.bash
 source ~/AMR-tiago/ros2_ws/install/setup.bash

@@ -23,11 +23,10 @@ mapping(){
     # pane 1
     tmux send-keys C-l
     tmux send-keys "run-gazebo"
-    tmux split-window -v -p 10  # Split vertically
+    tmux split-window -v -p 30  # Split vertically
 
     # pane 4
     tmux send-keys C-l
-    tmux send-keys "echo general purpose ssh terminal" C-m
     tmux send-keys "run-save-map"
 
     # pane 2
@@ -37,16 +36,14 @@ mapping(){
     tmux send-keys "run-rviz-slam"
 
     # pane 3
-    tmux split-window -h -p 66  # Split horizontally
+    tmux split-window -h -p 50  # Split horizontally
     tmux send-keys C-l
     tmux send-keys "run-explore-lite"
 
     # pane 5
     tmux select-pane -t 4
-    tmux split-window -h -p 1
-    tmux send-keys C-l
+    tmux split-window -h -p 33
     tmux send-keys "micro $SETUP_TMUX_FOLDER/mapping_notes.txt" C-m
-    tmux select-pane -t 4
 
     #tmux new-window -n "tab name"
     tmux select-pane -t 1
@@ -90,7 +87,7 @@ tmux has-session -t $SESSION 2>/dev/null
 
 # If session does not exist, create it
 if [ $? != 0 ]; then
-    tmux new-session -d -s $SESSION -n "$1"
+    tmux new-session -d -s $SESSION -n "$1" -x- -y-
     $1
 else
     echo "Session already exists. Should I kill it and start a new one? [y/n]"
