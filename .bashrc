@@ -193,7 +193,7 @@ fi
 export ROS_DOMAIN_ID=30 #TURTLEBOT3
 export LC_NUMERIC="en_US.UTF-8"
 export TURTLEBOT3_MODEL=burger
-export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+# export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
 
 source /opt/ros/humble/setup.bash
 source ~/AMR-tiago/ros2_ws/install/setup.bash
