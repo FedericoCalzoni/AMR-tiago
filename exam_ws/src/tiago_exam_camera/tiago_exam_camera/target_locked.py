@@ -1,11 +1,12 @@
-import rclpy
+import rclpy, cv2, numpy as np
 from rclpy.node import Node
+from cv_bridge import CvBridge
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Twist
+from rclpy.action import ActionClient
+from nav2_msgs.action import NavigateToPose
+from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
-from cv_bridge import CvBridge
-import cv2
-import numpy as np
 
 class ArucoCubeDetection(Node):
 
@@ -16,11 +17,12 @@ class ArucoCubeDetection(Node):
             '/head_front_camera/rgb/image_raw',
             self.callback,
             1)
-        self.publisher = self.create_publisher(Twist, '/cmd_vel', 10)
+        self.action_client = ActionClient(self, NavigateToPose, 'navigate_to_pose')
         self.head_publisher = self.create_publisher(JointTrajectory, '/head_controller/joint_trajectory', 10)
         self.bridge = CvBridge()
         self.aruco_dict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_6X6_250)
         self.aruco_params = cv2.aruco.DetectorParameters_create()
+        self.goal_sent = False
 
     def callback(self, msg):
         self.img = self.bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
@@ -84,9 +86,21 @@ class ArucoCubeDetection(Node):
         self.head_publisher.publish(trajectory_msg)
 
     def rotate_in_place(self):
-        twist = Twist()
-        twist.angular.z = -0.1  # Positive value for counter-clockwise rotation, negative for clockwise
-        self.publisher.publish(twist)
+        if not self.goal_sent:
+            goal_pose = PoseStamped()
+            goal_pose.header.frame_id = 'map'
+            goal_pose.header.stamp = self.get_clock().now().to_msg()
+            goal_pose.pose.position.x = 0.0
+            goal_pose.pose.position.y = 0.0
+            goal_pose.pose.orientation.z = -np.pi/5  # Simplified orientation (yaw)
+            goal_pose.pose.orientation.w = 1.0    # No rotation (quaternion format)
+
+            goal_msg = NavigateToPose.Goal()
+            goal_msg.pose = goal_pose
+
+            self._send_goal_future = self.action_client.send_goal_async(goal_msg)
+            self.get_logger().info("Goal sent")
+            self.goal_sent = True  # Set the flag to True after sending the goal
 
 def main(args=None):
     rclpy.init(args=args)
