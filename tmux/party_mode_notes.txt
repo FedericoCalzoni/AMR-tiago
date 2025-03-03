@@ -1,7 +1,7 @@
-1 - BringUP
-2 - RViz (Scans)
-4 - MappingClosure
-5 - save maps
+1 - Gazebo
+2 - RViz
+4 - Target (cubes) locking
+5 - Use to investigate
 
 ctrl-a q        change pane
 Ctrl-a c        create tab

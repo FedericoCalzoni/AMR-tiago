@@ -164,6 +164,7 @@ alias run-rviz='ros2 launch tiago_2dnav tiago_nav_bringup.launch.py is_public_si
 alias run-teleop='ros2 run teleop_twist_keyboard teleop_twist_keyboard'
 alias run-explore-lite='ros2 launch explore_lite explore.launch.py'
 alias run-navigate-to-pose='ros2 run tiago_exam_navigation navigate_to_pose'
+alias run-target-locked='ros2 run tiago_exam_camera target_locked'
 
 # Add an "alert" alias for long running commands.  Use like so:
 #   sleep 10; alert

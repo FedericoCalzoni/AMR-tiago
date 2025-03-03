@@ -14,7 +14,8 @@
 # 2) add a new function that sets up the tmux session
 
 declare -A CONFIGS=(
-    ["mapping"]="gaezbo, rviz-SLAM, run-explore-lite"
+    ["mapping"]="gaezbo, rviz-SLAM, run-explore-lite",
+    ["party_mode"]="gaezbo, rviz, target_locked, navigate_to_pose"
     # Add more configurations here
 )
 
@@ -49,6 +50,37 @@ mapping(){
     tmux select-pane -t 1
 }
 
+party_mode(){
+    
+    # pane 1
+    tmux send-keys C-l
+    tmux send-keys "run-gazebo"
+    tmux split-window -v -p 30  # Split vertically
+
+    # pane 4
+    tmux send-keys C-l
+    tmux send-keys "ros2 "
+
+    # pane 2
+    tmux select-pane -t 1
+    tmux split-window -h -p 66  # Split horizontally
+    tmux send-keys C-l
+    tmux send-keys "run-rviz"
+
+    # pane 3
+    tmux split-window -h -p 50  # Split horizontally
+    tmux send-keys C-l
+    tmux send-keys "run-target-locked"
+
+    # pane 5
+    tmux select-pane -t 4
+    tmux split-window -h -p 33
+    tmux send-keys "micro $SETUP_TMUX_FOLDER/party_mode_notes.txt" C-m
+
+    #tmux new-window -n "tab name"
+    tmux select-pane -t 1
+}
+
 # Add more functions here
 
 ###########################################
@@ -76,7 +108,7 @@ validate_config() {
 # Main Script
 ###########################################
 
-SESSION="AMR-projct"
+SESSION="AMR-project"
 SETUP_TMUX_FOLDER=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 # Validate input
@@ -90,9 +122,10 @@ if [ $? != 0 ]; then
     tmux new-session -d -s $SESSION -n "$1" -x- -y-
     $1
 else
-    echo "Session already exists. Should I kill it and start a new one? [y/n]"
+    echo "Session already exists. Should I kill it and start a new one? [Y/n]"
     read -r response
-    if [ "$response" == "y" ]; then
+    response=${response:-Y}  # Default to "Y" if no response is provided
+    if [ "$response" == "Y" ] || [ "$response" == "y" ]; then
         tmux kill-session -t $SESSION
         tmux new-session -d -s $SESSION -n "$1"
         $1

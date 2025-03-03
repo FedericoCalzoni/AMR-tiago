@@ -22,7 +22,8 @@ setup(
         'console_scripts': [
             'image_sub = tiago_exam_camera.image_sub:main',
             '2d_point_to_3d = tiago_exam_camera.2d_point_to_3d:main',
-            '3d_point_to_2d = tiago_exam_camera.3d_point_to_2d:main'
+            '3d_point_to_2d = tiago_exam_camera.3d_point_to_2d:main',
+            'target_locked = tiago_exam_camera.target_locked:main'
         ],
     },
 )
