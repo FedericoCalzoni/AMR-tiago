@@ -20,7 +20,27 @@ class ArucoCubeDetection(Node):
         self.action_client = ActionClient(self, NavigateToPose, 'navigate_to_pose')
         self.head_publisher = self.create_publisher(JointTrajectory, '/head_controller/joint_trajectory', 10)
         self.bridge = CvBridge()
-        self.aruco_dict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_7X7_1000)
+        self.aruco_dict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_ARUCO_ORIGINAL)
+
+        self.aruco_dicts = {
+            "DICT_4X4_50": cv2.aruco.Dictionary_get(cv2.aruco.DICT_4X4_50),
+            "DICT_4X4_100": cv2.aruco.Dictionary_get(cv2.aruco.DICT_4X4_100),
+            "DICT_4X4_250": cv2.aruco.Dictionary_get(cv2.aruco.DICT_4X4_250),
+            "DICT_4X4_1000": cv2.aruco.Dictionary_get(cv2.aruco.DICT_4X4_1000),
+            "DICT_5X5_50": cv2.aruco.Dictionary_get(cv2.aruco.DICT_5X5_50),
+            "DICT_5X5_100": cv2.aruco.Dictionary_get(cv2.aruco.DICT_5X5_100),
+            "DICT_5X5_250": cv2.aruco.Dictionary_get(cv2.aruco.DICT_5X5_250),
+            "DICT_5X5_1000": cv2.aruco.Dictionary_get(cv2.aruco.DICT_5X5_1000),
+            "DICT_6X6_50": cv2.aruco.Dictionary_get(cv2.aruco.DICT_6X6_50),
+            "DICT_6X6_100": cv2.aruco.Dictionary_get(cv2.aruco.DICT_6X6_100),
+            "DICT_6X6_250": cv2.aruco.Dictionary_get(cv2.aruco.DICT_6X6_250),
+            "DICT_6X6_1000": cv2.aruco.Dictionary_get(cv2.aruco.DICT_6X6_1000),
+            "DICT_7X7_50": cv2.aruco.Dictionary_get(cv2.aruco.DICT_7X7_50),
+            "DICT_7X7_100": cv2.aruco.Dictionary_get(cv2.aruco.DICT_7X7_100),
+            "DICT_7X7_250": cv2.aruco.Dictionary_get(cv2.aruco.DICT_7X7_250),
+            "DICT_7X7_1000": cv2.aruco.Dictionary_get(cv2.aruco.DICT_7X7_1000),
+            "DICT_ARUCO_ORIGINAL": cv2.aruco.Dictionary_get(cv2.aruco.DICT_ARUCO_ORIGINAL)
+        }
         
         self.aruco_params = cv2.aruco.DetectorParameters_create()
         self.aruco_params.adaptiveThreshWinSizeMin = 5  # Increase for better thresholding
@@ -37,26 +57,27 @@ class ArucoCubeDetection(Node):
 
     def callback(self, msg):
         self.img = self.bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
-        view = self.img.copy()
 
         cv2.imshow("Tiago's view", self.img)
         cv2.waitKey(1)
         
         gray = cv2.cvtColor(self.img, cv2.COLOR_BGR2GRAY)
         corners, ids, _ = cv2.aruco.detectMarkers(gray, self.aruco_dict, parameters=self.aruco_params)
-
-        if ids is not None and ():
-            self.get_logger().info(f"Cubes locked. IDs: {ids}")
+            
+        if ids is not None:
+            self.get_logger().info(f"Cubes locked, IDs: {ids}")
+            #if 63 in ids:
+            #    self.get_logger().info(f"EUREKA 63 LOCKED")
+            if 586 in ids:
+                self.get_logger().info(f"ZIOPERA 586 LOCKED")
             for corner in corners:
                 cv2.aruco.drawDetectedMarkers(self.img, corners, ids)
                 # Calculate the center of the marker
                 center_x = int(corner[0][0][0] + corner[0][2][0]) // 2
                 center_y = int(corner[0][0][1] + corner[0][2][1]) // 2
                 cv2.circle(self.img, (center_x, center_y), 5, (0, 255, 0), -1)
-                self.move_toward_marker(center_x, center_y)
-                self.move_head(center_x, center_y)
-        else:
-            self.rotate_in_place()
+                #self.move_toward_marker(center_x, center_y)
+                #self.move_head(center_x, center_y)
 
     def move_toward_marker(self, center_x):
         twist = Twist()
@@ -96,12 +117,6 @@ class ArucoCubeDetection(Node):
 
         trajectory_msg.points.append(point)
         self.head_publisher.publish(trajectory_msg)
-
-    def rotate_in_place(self):
-        twist = Twist()
-        twist.linear.x = 0.01
-        twist.angular.z = 0.1
-        self.publisher.publish(twist)
 
 def main(args=None):
     rclpy.init(args=args)
