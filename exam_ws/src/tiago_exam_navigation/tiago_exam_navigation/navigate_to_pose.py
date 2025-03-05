@@ -57,9 +57,9 @@ def main(args=None):
     rclpy.init(args=args)
     
     # Example coordinates (replace with your pick/place locations)
-    pick_location = (1.2, -2.3, np.pi/4)  # (x, y, theta)
+    pick_location = (0.7, -4, np.pi/5)  # (x, y, theta)
     #pick_location = (0.55, -2.6, 0.9)  # (x, y, theta)
-    place_location = (-1.35, -1.35, 0.2)
+    #place_location = (-1.35, -1.35, 0.2)
     
     nav_client = NavigationClient()
     

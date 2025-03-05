@@ -20,12 +20,24 @@ class ArucoCubeDetection(Node):
         self.action_client = ActionClient(self, NavigateToPose, 'navigate_to_pose')
         self.head_publisher = self.create_publisher(JointTrajectory, '/head_controller/joint_trajectory', 10)
         self.bridge = CvBridge()
-        self.aruco_dict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_6X6_250)
+        self.aruco_dict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_7X7_1000)
+        
         self.aruco_params = cv2.aruco.DetectorParameters_create()
-        self.goal_sent = False
+        self.aruco_params.adaptiveThreshWinSizeMin = 5  # Increase for better thresholding
+        self.aruco_params.adaptiveThreshWinSizeMax = 25  # Increase for better thresholding
+        self.aruco_params.adaptiveThreshWinSizeStep = 5  # Decrease for more precise thresholding
+        self.aruco_params.minMarkerPerimeterRate = 0.02  # Decrease for smaller markers
+        self.aruco_params.maxMarkerPerimeterRate = 4.5  # Increase for larger markers
+        self.aruco_params.polygonalApproxAccuracyRate = 0.03  # Decrease for more accurate contour
+        self.aruco_params.minCornerDistanceRate = 0.1  # Increase for larger corner distances
+        self.aruco_params.minDistanceToBorder = 5  # Increase for markers closer to the border
+        self.aruco_params.minMarkerDistanceRate = 0.1  # Increase for markers farther apart
+
+        self.goal_reached = False
 
     def callback(self, msg):
         self.img = self.bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
+        view = self.img.copy()
 
         cv2.imshow("Tiago's view", self.img)
         cv2.waitKey(1)
@@ -33,7 +45,7 @@ class ArucoCubeDetection(Node):
         gray = cv2.cvtColor(self.img, cv2.COLOR_BGR2GRAY)
         corners, ids, _ = cv2.aruco.detectMarkers(gray, self.aruco_dict, parameters=self.aruco_params)
 
-        if ids is not None:
+        if ids is not None and ():
             self.get_logger().info(f"Cubes locked. IDs: {ids}")
             for corner in corners:
                 cv2.aruco.drawDetectedMarkers(self.img, corners, ids)
@@ -86,21 +98,10 @@ class ArucoCubeDetection(Node):
         self.head_publisher.publish(trajectory_msg)
 
     def rotate_in_place(self):
-        if not self.goal_sent:
-            goal_pose = PoseStamped()
-            goal_pose.header.frame_id = 'map'
-            goal_pose.header.stamp = self.get_clock().now().to_msg()
-            goal_pose.pose.position.x = 0.0
-            goal_pose.pose.position.y = 0.0
-            goal_pose.pose.orientation.z = -np.pi/5  # Simplified orientation (yaw)
-            goal_pose.pose.orientation.w = 1.0    # No rotation (quaternion format)
-
-            goal_msg = NavigateToPose.Goal()
-            goal_msg.pose = goal_pose
-
-            self._send_goal_future = self.action_client.send_goal_async(goal_msg)
-            self.get_logger().info("Goal sent")
-            self.goal_sent = True  # Set the flag to True after sending the goal
+        twist = Twist()
+        twist.linear.x = 0.01
+        twist.angular.z = 0.1
+        self.publisher.publish(twist)
 
 def main(args=None):
     rclpy.init(args=args)

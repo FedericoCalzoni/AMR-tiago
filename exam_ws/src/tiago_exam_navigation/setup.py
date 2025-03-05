@@ -40,7 +40,8 @@ setup(
             'task_manager = tiago_exam_navigation.task_manager:main',
             
             # Utilities
-            'navigate_to_pose = tiago_exam_navigation.navigate_to_pose:main'
+            'navigate_to_pose = tiago_exam_navigation.navigate_to_pose:main',
+            'move_head = tiago_exam_navigation.move_head:main'
         ],
     },
 )
