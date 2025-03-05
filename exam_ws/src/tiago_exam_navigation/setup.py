@@ -40,7 +40,11 @@ setup(
             'task_manager = tiago_exam_navigation.task_manager:main',
             
             # Utilities
-            'navigate_to_pose = tiago_exam_navigation.navigate_to_pose:main'
+            'navigate_to_pose = tiago_exam_navigation.navigate_to_pose:main',
+            
+            # Detect Second Pose 
+            'detect_blue_block = tiago_exam_navigation.detect_blue_block:main',
+            'move_to_block = tiago_exam_navigation.move_to_block:main'
         ],
     },
 )
