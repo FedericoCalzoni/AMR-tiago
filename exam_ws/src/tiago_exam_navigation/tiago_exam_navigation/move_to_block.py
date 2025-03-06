@@ -12,4 +12,4 @@ def send_goal(self, x, y):
 
     self.goal_pub.publish(goal)
     self.get_logger().info(f"📍 Obiettivo inviato a: x={goal.pose.position.x}, y={goal.pose.position.y}")
-
+    

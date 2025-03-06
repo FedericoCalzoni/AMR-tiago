@@ -44,7 +44,12 @@ setup(
             
             # Detect Second Pose 
             'detect_blue_block = tiago_exam_navigation.detect_blue_block:main',
-            'move_to_block = tiago_exam_navigation.move_to_block:main'
+            'move_to_block = tiago_exam_navigation.move_to_block:main',
+            'detect_blue_block_plus= tiago_exam_navigation.detect_blue_box_plus:main', 
+            'test_detect = tiago_exam_navigation.test_detect:main',
+            'test_detect_plus = tiago_exam_navigation.test_detect_plus:main',
+            'detect_test = tiago_exam_navigation.detect_test:main',
+            'detect_face_test = tiago_exam_navigation.detect_face_test:main',
         ],
     },
 )
