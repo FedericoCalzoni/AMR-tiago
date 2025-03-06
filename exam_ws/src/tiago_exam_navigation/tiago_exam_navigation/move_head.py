@@ -5,10 +5,10 @@ from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
 # Define the keys for controlling the head
 move_bindings = {
-    'a': (0.1, 0),  # Up
-    'd': (-0.1, 0), # Down
-    'w': (0, 0.1),  # Left
-    's': (0, -0.1)  # Right
+    'a': (0.1, 0),  # Left
+    'd': (-0.1, 0), # Right
+    'w': (0, 0.1),  # Up
+    's': (0, -0.1)  # Down
 }
 
 def get_key(settings):
