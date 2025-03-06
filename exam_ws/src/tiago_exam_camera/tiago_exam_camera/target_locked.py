@@ -1,4 +1,4 @@
-import rclpy, cv2, numpy as np
+import rclpy, cv2
 from rclpy.node import Node
 from cv_bridge import CvBridge
 from sensor_msgs.msg import Image
@@ -12,11 +12,7 @@ class ArucoCubeDetection(Node):
 
     def __init__(self):
         super().__init__('image_subscriber')
-        self.subscription = self.create_subscription(
-            Image,
-            '/head_front_camera/rgb/image_raw',
-            self.callback,
-            1)
+        self.subscription = self.create_subscription(Image, '/head_front_camera/rgb/image_raw', self.callback, 1)
         self.action_client = ActionClient(self, NavigateToPose, 'navigate_to_pose')
         self.twist_publisher = self.create_publisher(Twist, '/cmd_vel', 10)
         self.aruco_publisher = self.create_publisher(TransformStamped, '/aruco_single/transform', 10)
