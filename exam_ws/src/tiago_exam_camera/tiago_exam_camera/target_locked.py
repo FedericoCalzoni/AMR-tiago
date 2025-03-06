@@ -1,4 +1,5 @@
 import rclpy, cv2
+import numpy as np
 from rclpy.node import Node
 from cv_bridge import CvBridge
 from sensor_msgs.msg import Image
@@ -24,19 +25,19 @@ class ArucoCubeDetection(Node):
         self.aruco_dict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_ARUCO_ORIGINAL)
         
         self.aruco_params = cv2.aruco.DetectorParameters_create()        
-        self.aruco_params.minDistanceToBorder =  7
-        self.aruco_params.cornerRefinementMaxIterations = 149
-        self.aruco_params.minOtsuStdDev= 4.0
-        self.aruco_params.adaptiveThreshWinSizeMin= 7
-        self.aruco_params.adaptiveThreshWinSizeStep= 49
-        self.aruco_params.minMarkerDistanceRate= 0.014971725679291437
-        self.aruco_params.maxMarkerPerimeterRate= 10.075976700411534 
-        self.aruco_params.minMarkerPerimeterRate= 0.2524866841549599 
-        self.aruco_params.polygonalApproxAccuracyRate= 0.05562707541937206
-        self.aruco_params.cornerRefinementWinSize= 9
-        self.aruco_params.adaptiveThreshConstant= 9.0
-        self.aruco_params.adaptiveThreshWinSizeMax= 369
-        self.aruco_params.minCornerDistanceRate= 0.09167132584946237
+        # self.aruco_params.minDistanceToBorder =  7
+        # self.aruco_params.cornerRefinementMaxIterations = 149
+        # self.aruco_params.minOtsuStdDev= 4.0
+        # self.aruco_params.adaptiveThreshWinSizeMin= 7
+        # self.aruco_params.adaptiveThreshWinSizeStep= 49
+        # self.aruco_params.minMarkerDistanceRate= 0.014971725679291437
+        # self.aruco_params.maxMarkerPerimeterRate= 10.075976700411534 
+        # self.aruco_params.minMarkerPerimeterRate= 0.2524866841549599 
+        # self.aruco_params.polygonalApproxAccuracyRate= 0.05562707541937206
+        # self.aruco_params.cornerRefinementWinSize= 9
+        # self.aruco_params.adaptiveThreshConstant= 9.0
+        # self.aruco_params.adaptiveThreshWinSizeMax= 369
+        # self.aruco_params.minCornerDistanceRate= 0.09167132584946237
 
         self.goal_found = False
 
@@ -51,17 +52,18 @@ class ArucoCubeDetection(Node):
         if ids is not None:
             self.goal_found = True
             self.get_logger().info(f"Cubes locked, IDs: {ids}")
-            for id in ids:
-                if id[0] == target_ids[0]:
-                    for corner in corners:
-                        cv2.aruco.drawDetectedMarkers(self.img, corners, ids)
-                        # Calculate the center of the marker
-                        center_x = int(corner[0][0][0] + corner[0][2][0]) // 2
-                        center_y = int(corner[0][0][1] + corner[0][2][1]) // 2
-                        # self.get_logger().info(f"Center: {center_x}, {center_y}")
-                        cv2.circle(self.img, (center_x, center_y), 2, (255, 0, 0), -1)
-                        #self.move_toward_marker(center_x)
-                        self.move_head(center_x, center_y)
+            for i, id in enumerate(ids):
+                if id[0] == target_ids[0]:  # ID 63
+                    corner = corners[i]
+                    cv2.aruco.drawDetectedMarkers(self.img, corners, ids)
+                    # Calculate the center of the marker
+                    center_x = int(corner[0][0][0] + corner[0][2][0]) // 2
+                    center_y = int(corner[0][0][1] + corner[0][2][1]) // 2
+                    cv2.circle(self.img, (center_x, center_y), 2, (255, 0, 0), -1)
+                    self.move_head(center_x, center_y)
+                    
+                    # Calculate and publish the transform
+                    self.publish_marker_transform(corner[0])
             else:
                 self.get_logger().info(f"\033[93mNot 582 but found IDs: {ids}\033[0m")
         elif not self.goal_found:
@@ -147,7 +149,59 @@ class ArucoCubeDetection(Node):
         self.head_state.points = [point]
         # self.get_logger().info(f"Head trajectory: {self.head_state}")
         self.head_publisher.publish(self.head_state)
-
+        
+    def publish_marker_transform(self, corners):
+        marker_size = 0.06 # Marker size in meters
+        
+        # TODO: thake them from topic /head_front_camera/depth_registered/camera_info
+        # Camera matrix and distortion coefficients (you may need to get these from camera info)
+        # For simplicity, using an estimated camera matrix
+        camera_matrix = np.array([[570.0, 0, 320.0], [0, 570.0, 240.0], [0, 0, 1]])
+        dist_coeffs = np.zeros((4, 1))
+        
+        # Reshape corners for pose estimation
+        marker_corners = np.array([
+            [corners[0][0], corners[0][1]],
+            [corners[1][0], corners[1][1]],
+            [corners[2][0], corners[2][1]],
+            [corners[3][0], corners[3][1]]
+        ], dtype=np.float32)
+        
+        # Get the marker pose relative to the camera
+        rvec, tvec, _ = cv2.aruco.estimatePoseSingleMarkers(
+            [marker_corners], marker_size, camera_matrix, dist_coeffs
+        )
+        
+        # Create transform message
+        transform_msg = TransformStamped()
+        transform_msg.header.stamp = self.get_clock().now().to_msg()
+        transform_msg.header.frame_id = 'head_front_camera_rgb_optical_frame'
+        transform_msg.child_frame_id = 'aruco_marker_frame'
+        
+        # Set translation
+        transform_msg.transform.translation.x = float(tvec[0][0][0])
+        transform_msg.transform.translation.y = float(tvec[0][0][1])
+        transform_msg.transform.translation.z = float(tvec[0][0][2])
+        
+        # Convert rotation vector to quaternion
+        rotation_matrix = np.eye(4)
+        rotation_matrix[:3, :3], _ = cv2.Rodrigues(rvec[0][0])
+        
+        # Convert to quaternion
+        from scipy.spatial.transform import Rotation as R
+        r = R.from_matrix(rotation_matrix[:3, :3])
+        quat = r.as_quat()  # x, y, z, w
+        
+        transform_msg.transform.rotation.x = float(quat[0])
+        transform_msg.transform.rotation.y = float(quat[1])
+        transform_msg.transform.rotation.z = float(quat[2])
+        transform_msg.transform.rotation.w = float(quat[3])
+        
+        # Publish the transform
+        self.aruco_publisher.publish(transform_msg)
+        self.get_logger().info(f"Published transform for marker ID 63")
+        
+        
 def main(args=None):
     rclpy.init(args=args)
 

@@ -10,4 +10,8 @@ Ctrl-a "        horizontal split
 Ctrl-a %        vertical split
 Ctrl-a &        kill everything
 
+Set back the initial pose of the robot, then **REBUILD** THE WORKSPACE
+/AMR-tiago/tiago_ws/src/tiago_simulation/tiago_gazebo/launch/tiago_spawn.launch.py
+line 33: spawn_coordinates = [-0.5, -1.3, 0.0]
+
 ros2 run lab3 1_aruco_tf_sub
