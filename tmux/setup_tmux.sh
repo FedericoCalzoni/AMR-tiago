@@ -16,6 +16,7 @@
 declare -A CONFIGS=(
     ["mapping"]="gaezbo, rviz-SLAM, run-explore-lite",
     ["party_mode"]="gaezbo, rviz, target_locked, navigate_to_pose"
+    ["arm"]="todo"
     # Add more configurations here
 )
 
@@ -76,6 +77,37 @@ party_mode(){
     tmux select-pane -t 4
     tmux split-window -h -p 33
     tmux send-keys "micro $SETUP_TMUX_FOLDER/party_mode_notes.txt" C-m
+
+    #tmux new-window -n "tab name"
+    tmux select-pane -t 1
+}
+
+arm(){
+    
+    # pane 1
+    tmux send-keys C-l
+    tmux send-keys "run-gazebo"
+    tmux split-window -v -p 30  # Split vertically
+
+    # pane 4
+    tmux send-keys C-l
+    tmux send-keys "ros2 "
+
+    # pane 2
+    tmux select-pane -t 1
+    tmux split-window -h -p 66  # Split horizontally
+    tmux send-keys C-l
+    tmux send-keys "run-rviz"
+
+    # pane 3
+    tmux split-window -h -p 50  # Split horizontally
+    tmux send-keys C-l
+    tmux send-keys "run-target-locked"
+
+    # pane 5
+    tmux select-pane -t 4
+    tmux split-window -h -p 33
+    tmux send-keys "micro $SETUP_TMUX_FOLDER/arm_notes.txt" C-m
 
     #tmux new-window -n "tab name"
     tmux select-pane -t 1
