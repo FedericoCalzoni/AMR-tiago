@@ -167,6 +167,7 @@ alias run-navigate-to-pose='ros2 run tiago_exam_navigation navigate_to_pose'
 alias run-target-locked='ros2 run tiago_exam_camera target_locked'
 alias run-eyes='ros2 run tiago_exam_camera image_sub'
 alias run-head-joystick='ros2 run tiago_exam_navigation move_head'
+alias run-pick-and-place= 'ros2 run tiago_exam_manipulation pick_and_place' 
 
 # Add an "alert" alias for long running commands.  Use like so:
 #   sleep 10; alert
