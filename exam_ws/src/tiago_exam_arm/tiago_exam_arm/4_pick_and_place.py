@@ -1,21 +1,25 @@
 import rclpy
 from rclpy.node import Node
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
-from control_msgs.msg import GripperCommandActionGoal
 
 class PickAndPlaceNode(Node):
     def __init__(self):
         super().__init__('pick_and_place_node')
         self.arm_publisher = self.create_publisher(JointTrajectory, '/arm_controller/command', 10)
-        self.gripper_publisher = self.create_publisher(GripperCommandActionGoal, '/gripper_controller/gripper_cmd/goal', 10)
+        
+        self.gripper_publisher = self.create_publisher(JointTrajectory, '/gripper_controller/joint_trajectory', 10)
+        self.gripper_state = JointTrajectory()
+        self.gripper_state.joint_names = ['gripper_finger_joint']
+        
         self.timer = self.create_timer(1.0, self.timer_callback)
         self.moving_down = True
 
     def timer_callback(self):
-        if self.moving_down:
-            self.move_arm_down()
-        else:
-            self.move_arm_up()
+        self.pick_object()
+        #if self.moving_down:
+        #    self.move_arm_down()
+        #else:
+        #    self.move_arm_up()
 
     def move_arm_down(self):
         traj = JointTrajectory()
@@ -39,10 +43,12 @@ class PickAndPlaceNode(Node):
         self.moving_down = True
         self.get_logger().info('Moving arm up')
 
-        # Close the gripper
-        gripper_goal = GripperCommandActionGoal()
-        gripper_goal.goal.command.position = 0.0  # Close gripper
-        self.gripper_publisher.publish(gripper_goal)
+    def pick_object(self):
+        point = JointTrajectoryPoint()
+        point.positions = [0.0]  # Close gripper
+        point.time_from_start = rclpy.duration.Duration(seconds=1.0).to_msg()
+        self.gripper_state.points = [point]
+        self.gripper_publisher.publish(self.gripper_state)
         self.get_logger().info('Closing gripper')
 
 def main(args=None):
