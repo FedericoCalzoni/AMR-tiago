@@ -50,6 +50,13 @@ setup(
             'test_detect_plus = tiago_exam_navigation.test_detect_plus:main',
             'detect_test = tiago_exam_navigation.detect_test:main',
             'detect_face_test = tiago_exam_navigation.detect_face_test:main',
+            'detect_move = tiago_exam_navigation.detect_move:main',
+            'detect_move_auto = tiago_exam_navigation.detect_move_auto:main',
+            'clever_detect_move = tiago_exam_navigation.clever_det_move:main',
+            'camera_depth = tiago_exam_navigation.camera_depth:main',
+            'camera_clever = tiago_exam_navigation.camera_clever:main',
+            'last = tiago_exam_navigation.last:main',
+            'last_plus = tiago_exam_navigation.last_plus:main',
         ],
     },
 )

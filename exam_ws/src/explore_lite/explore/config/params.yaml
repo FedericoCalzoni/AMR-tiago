@@ -4,13 +4,11 @@
     return_to_init: true
     costmap_topic: map
     costmap_updates_topic: map_updates
-    visualize: true
-    planner_frequency: 0.5
-    progress_timeout: 30.0
-    potential_scale: 3.0
-    orientation_scale: 0.0
-    gain_scale: 1.0
-    transform_tolerance: 0.3
-    min_frontier_size: 0.90
-    visualize: true  # Attiva la visualizzazione per debug
+    visualize: false  # Disabilita la visualizzazione
+    planner_frequency: 1.0  # Aumenta la frequenza del planner
+    progress_timeout: 10.0  # Riduci il timeout di progresso
+    potential_scale: 1.5  # Riduci la scala dei costi di potenziale
+    min_frontier_size: 0.50  # Riduci la dimensione minima della frontiera
+    orientation_scale: 0.5  # Aggiungi una leggera importanza all'orientamento
+    transform_tolerance: 0.1  # Riduci la tolleranza di trasformazione
 
