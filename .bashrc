@@ -167,6 +167,8 @@ alias run-navigate-to-pose='ros2 run tiago_exam_navigation navigate_to_pose'
 alias run-target-locked='ros2 run tiago_exam_camera target_locked'
 alias run-eyes='ros2 run tiago_exam_camera image_sub'
 alias run-head-joystick='ros2 run tiago_exam_navigation move_head'
+alias run-grasp-pose='ros2 run tiago_exam_arm 2_aruco_grasp_pose_broadcaster'
+alias run-move-arm='ros2 run tiago_exam_arm 3_move_arm'
 
 # Add an "alert" alias for long running commands.  Use like so:
 #   sleep 10; alert
@@ -203,3 +205,4 @@ source ~/AMR-tiago/ros2_ws/install/setup.bash
 source ~/AMR-tiago/tiago_ws/install/setup.bash
 # source ~/AMR-tiago/tiago_ws/src/install/setup.bash
 source ~/AMR-tiago/exam_ws/install/setup.bash
+source ~/AMR-tiago/pymoveit2-4.1.1/install/local_setup.bash

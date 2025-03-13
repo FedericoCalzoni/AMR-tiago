@@ -6,8 +6,6 @@ from pymoveit2 import MoveIt2
 from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
 
-
-
 class TiagoArucoGrasp(Node):
 
     def __init__(self):

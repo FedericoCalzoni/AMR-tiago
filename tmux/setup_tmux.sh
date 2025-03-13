@@ -89,23 +89,33 @@ arm(){
     tmux send-keys "run-gazebo"
     tmux split-window -v -p 30  # Split vertically
 
-    # pane 4
+    # pane 6
     tmux send-keys C-l
     tmux send-keys "ros2 "
 
     # pane 2
     tmux select-pane -t 1
-    tmux split-window -h -p 66  # Split horizontally
+    tmux split-window -h -p 80  # Split horizontally
     tmux send-keys C-l
-    tmux send-keys "run-rviz"
+    tmux send-keys "run-head-joystick"
 
     # pane 3
+    tmux split-window -h -p 75
+    tmux send-keys C-l
+    tmux send-keys "run-grasp-pose"
+
+    # pane 4
+    tmux split-window -h -p 66
+    tmux send-keys C-l
+    tmux send-keys "run-move-arm"
+
+    # pane 5
     tmux split-window -h -p 50  # Split horizontally
     tmux send-keys C-l
     tmux send-keys "run-target-locked"
 
-    # pane 5
-    tmux select-pane -t 4
+    # pane 7
+    tmux select-pane -t 6
     tmux split-window -h -p 33
     tmux send-keys "micro $SETUP_TMUX_FOLDER/arm_notes.txt" C-m
 
