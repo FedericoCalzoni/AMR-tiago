@@ -17,10 +17,9 @@ class ArucoGraspBroadcaster(Node):
         self.tf_broadcaster = TransformBroadcaster(self)
         self.frame_approach = None
         self.frame_target = None
-        self.timer = self.create_timer(0.1, self.publish_frame_approach)
-        self.timer = self.create_timer(0.1, self.publish_frame_target)
 
-        self.t_base = None
+        self.timer = self.create_timer(0.1, self.publish_frames)
+        
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
         self.timer_aruco = self.create_timer(0.1, self.timer_tf_base)
@@ -29,11 +28,24 @@ class ArucoGraspBroadcaster(Node):
         self.camera_frame = "head_front_camera_rgb_optical_frame"
         self.frame_target_name = "aruco_marker_frame_target"
         self.frame_approach_name = "aruco_marker_frame_approach"
+        self.frame_grasp_name = "aruco_marker_frame_grasp"
+        
+        self.t_base = None
+        self.frame_aruco = None
 
     def get_aruco_callback(self, msg):
         position = Vector(msg.transform.translation.x, msg.transform.translation.y, msg.transform.translation.z)
         orientation = Rotation.Quaternion(msg.transform.rotation.x, msg.transform.rotation.y, msg.transform.rotation.z, msg.transform.rotation.w) 
         self.frame_aruco = Frame(orientation, position)
+        self.get_logger().info(f"Received ArUco transform: pos={position}")
+        self.get_logger().info(f"quat=[{msg.transform.rotation.x} y={msg.transform.rotation.y}, z={msg.transform.rotation.z}, w={msg.transform.rotation.w}]")
+
+    def timer_tf_base(self):
+        try:
+            self.t_base = self.tf_buffer.lookup_transform(self.robot_base_frame, self.camera_frame, rclpy.time.Time())
+        except Exception as e:
+            self.get_logger().warn(f'Could not transform base-camera! {str(e)}')
+        return
 
     def get_frame_kdl(self, tf):
         pos = [tf.transform.translation.x, tf.transform.translation.y, tf.transform.translation.z]
@@ -44,41 +56,6 @@ class ArucoGraspBroadcaster(Node):
 
         frame = Frame(Rotation.Quaternion(quat[0], quat[1], quat[2], quat[3]), Vector(pos[0], pos[1], pos[2]))
         return frame
-
-    def timer_tf_base(self):
-        try:
-            self.t_base = self.tf_buffer.lookup_transform(self.robot_base_frame, self.camera_frame, rclpy.time.Time())
-        except:
-            self.get_logger().info('Could not transform base-camera!')
-        return
-    
-
-
-        self.frame_approach = self.frame_target * Frame(Rotation(), Vector(0, 0, 0.5))
-
-        self.frame_approach.M.DoRotY(np.pi/2)
-
-    def publish_frame_approach(self):
-        if self.t_base is None:
-            return
-
-        frame_robot = self.get_frame_kdl(self.t_base)
-        
-        frame_approach = frame_robot * self.frame_aruco * Frame(Rotation(), Vector(0, 0, 0.5))
-
-        frame_approach.M.DoRotY(np.pi/2)
-
-        self.publish_frame(frame_approach, self.frame_approach_name)
-
-    def publish_frame_target(self):
-        if self.t_base is None:
-            return
-        
-        frame_robot = self.get_frame_kdl(self.t_base)
-        
-        frame = frame_robot * self.frame_aruco 
-
-        self.publish_frame(frame, self.frame_target_name)
 
 
     def publish_frame(self, frame, tf_name):
@@ -103,6 +80,29 @@ class ArucoGraspBroadcaster(Node):
 
         # Send the transformation
         self.tf_broadcaster.sendTransform(t)
+        
+    def publish_frames(self):
+        if self.t_base is None or self.frame_aruco is None:
+            return
+
+        frame_robot = self.get_frame_kdl(self.t_base)
+        
+        # Calculate target frame (marker position in robot base frame)
+        frame_target = frame_robot * self.frame_aruco
+        self.publish_frame(frame_target, self.frame_target_name)
+        
+        # Calculate pre-grasp approach frame (offset in front of the marker)
+        # Creating an approach position 10cm in front of the marker
+        frame_approach = frame_target * Frame(Rotation(), Vector(0, 0, 0.1))
+        # Rotate to have the gripper approach horizontally
+        frame_approach.M.DoRotY(np.pi/2)
+        self.publish_frame(frame_approach, self.frame_approach_name)
+        
+        # Calculate the final grasp frame
+        # This is closer to the marker than the approach frame
+        frame_grasp = frame_target * Frame(Rotation(), Vector(0, 0, 0.05))
+        frame_grasp.M.DoRotY(np.pi/2)
+        self.publish_frame(frame_grasp, self.frame_grasp_name)
 
 def main(args=None):
     rclpy.init(args=args)

@@ -3,77 +3,98 @@ import numpy as np
 from rclpy.node import Node
 from cv_bridge import CvBridge
 from sensor_msgs.msg import Image
+from sensor_msgs.msg import CameraInfo
+from sensor_msgs.msg import JointState
 from geometry_msgs.msg import Twist
 from rclpy.action import ActionClient
 from nav2_msgs.action import NavigateToPose
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped, TransformStamped
+from scipy.spatial.transform import Rotation as R
+from tf2_ros import TransformBroadcaster
 
 class ArucoCubeDetection(Node):
 
     def __init__(self):
         super().__init__('image_subscriber')
-        self.subscription = self.create_subscription(Image, '/head_front_camera/rgb/image_raw', self.callback, 1)
+        self.camera_info_subscription = self.create_subscription(CameraInfo, '/head_front_camera/rgb/camera_info', self.camera_info_callback, 1)
+        self.image_subscription = self.create_subscription(Image, '/head_front_camera/rgb/image_raw', self.image_callback, 1)
+        self.joint_state_subscription = self.create_subscription(JointState, '/joint_states', self.joint_state_callback, 1)
+        self.tf_broadcaster = TransformBroadcaster(self)
         self.action_client = ActionClient(self, NavigateToPose, 'navigate_to_pose')
         self.twist_publisher = self.create_publisher(Twist, '/cmd_vel', 10)
         self.aruco_publisher = self.create_publisher(TransformStamped, '/aruco_single/transform', 10)
         self.head_state = JointTrajectory()
         self.head_state.joint_names = ['head_1_joint', 'head_2_joint']
-        self.current_position = [0.0, 0.0]  # Initialize head position
         self.head_publisher = self.create_publisher(JointTrajectory, '/head_controller/joint_trajectory', 10)
         self.bridge = CvBridge()
+                
         self.aruco_dict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_ARUCO_ORIGINAL)
-        
         self.aruco_params = cv2.aruco.DetectorParameters_create()        
-        # self.aruco_params.minDistanceToBorder =  7
-        # self.aruco_params.cornerRefinementMaxIterations = 149
-        # self.aruco_params.minOtsuStdDev= 4.0
-        # self.aruco_params.adaptiveThreshWinSizeMin= 7
-        # self.aruco_params.adaptiveThreshWinSizeStep= 49
-        # self.aruco_params.minMarkerDistanceRate= 0.014971725679291437
-        # self.aruco_params.maxMarkerPerimeterRate= 10.075976700411534 
-        # self.aruco_params.minMarkerPerimeterRate= 0.2524866841549599 
-        # self.aruco_params.polygonalApproxAccuracyRate= 0.05562707541937206
-        # self.aruco_params.cornerRefinementWinSize= 9
-        # self.aruco_params.adaptiveThreshConstant= 9.0
-        # self.aruco_params.adaptiveThreshWinSizeMax= 369
-        # self.aruco_params.minCornerDistanceRate= 0.09167132584946237
-
+        
         self.goal_found = False
+        self.camera_info = None
+        self.current_position = [0.0, 0.0]  # Initialize head position
+        self.target_ids = [63, 582]
+        self.marker_size = 0.06
+        
+        self.get_logger().info('ArUco Detector Node initialized')
 
-    def callback(self, msg):
+    def camera_info_callback(self, msg):
+        self.camera_info = msg
+        
+    def image_callback(self, msg):
+        
         self.img = self.bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
         
         gray = cv2.cvtColor(self.img, cv2.COLOR_BGR2GRAY)
         corners, ids, _ = cv2.aruco.detectMarkers(gray, self.aruco_dict, parameters=self.aruco_params)
+        
+        # red dot in the center of the image
         cv2.circle(self.img, (self.img.shape[1] // 2, self.img.shape[0] // 2), 2, (0, 0, 255), -1)
 
-        target_ids = [63, 582]
         if ids is not None:
-            self.goal_found = True
             self.get_logger().info(f"Cubes locked, IDs: {ids}")
+            
             for i, id in enumerate(ids):
-                if id[0] == target_ids[0]:  # ID 63
+                if id[0] == self.target_ids[0]:  # ID 63
                     corner = corners[i]
                     cv2.aruco.drawDetectedMarkers(self.img, corners, ids)
                     # Calculate the center of the marker
                     center_x = int(corner[0][0][0] + corner[0][2][0]) // 2
                     center_y = int(corner[0][0][1] + corner[0][2][1]) // 2
-                    cv2.circle(self.img, (center_x, center_y), 2, (255, 0, 0), -1)
+                    
+                    self.goal_found = True
                     self.move_head(center_x, center_y)
                     
-                    # Calculate and publish the transform
-                    self.publish_marker_transform(corner[0])
-            else:
-                self.get_logger().info(f"\033[93mNot 582 but found IDs: {ids}\033[0m")
+                    # cv2.circle(self.img, (center_x, center_y), 2, (255, 0, 0), -1)
+                    
+                    self.publish_marker_transform(corner, id[0], msg.header.stamp)
         elif not self.goal_found:
             self.rotate_in_place()
-        # else:
-        #     self.goal_found = False
-        
+        else:
+            self.get_logger().warn("Target lost")
         
         cv2.imshow("Tiago's view", self.img)
         cv2.waitKey(1)
+        
+    def joint_state_callback(self, msg):
+        # Extract head joint positions from joint states message
+        try:
+            head_1_index = msg.name.index('head_1_joint')
+            head_2_index = msg.name.index('head_2_joint')
+            
+            self.current_position[0] = msg.position[head_1_index]
+            self.current_position[1] = msg.position[head_2_index]
+            self.head_position_initialized = True
+            
+            # Log only the first time or occasionally for debugging
+            if not hasattr(self, 'logged_head_position') or not self.logged_head_position:
+                self.get_logger().info(f'Current head position: [{self.current_position[0]:.3f}, {self.current_position[1]:.3f}]')
+                self.logged_head_position = True
+        except ValueError:
+            # If head joint names are not found in the message
+            self.get_logger().warn('Head joint names not found in joint_states message')
 
     def rotate_in_place(self):
         twist = Twist()
@@ -109,9 +130,9 @@ class ArucoCubeDetection(Node):
         error_y = center_y - img_center_y
         
         # PID controller for head movement
-        Kp = 0.0001  # Proportional gain for head movement
-        Ki = 0.00001  # Integral gain for head movement
-        Kd = 0.00001  # Derivative gain for head movement
+        Kp = 0.001  # Proportional gain for head movement
+        Ki = 0.001  # Integral gain for head movement
+        Kd = 0.001  # Derivative gain for head movement
         integral_limit = 100  # Limit for integral term to prevent wind-up
 
         # Initialize integral and derivative errors if they don't exist
@@ -150,46 +171,35 @@ class ArucoCubeDetection(Node):
         # self.get_logger().info(f"Head trajectory: {self.head_state}")
         self.head_publisher.publish(self.head_state)
         
-    def publish_marker_transform(self, corners):
-        marker_size = 0.06 # Marker size in meters
+    def publish_marker_transform(self, corner,  marker_id, timestamp):
         
-        # TODO: thake them from topic /head_front_camera/depth_registered/camera_info
-        # Camera matrix and distortion coefficients (you may need to get these from camera info)
-        # For simplicity, using an estimated camera matrix
-        camera_matrix = np.array([[570.0, 0, 320.0], [0, 570.0, 240.0], [0, 0, 1]])
-        dist_coeffs = np.zeros((4, 1))
+        if self.camera_info is None:
+            self.get_logger().warn("Camera info not yet received. Skipping transform publishing.")
+            return
         
-        # Reshape corners for pose estimation
-        marker_corners = np.array([
-            [corners[0][0], corners[0][1]],
-            [corners[1][0], corners[1][1]],
-            [corners[2][0], corners[2][1]],
-            [corners[3][0], corners[3][1]]
-        ], dtype=np.float32)
+        camera_matrix = np.array(self.camera_info.k).reshape(3, 3)
+        dist_coeffs = np.array(self.camera_info.d)
         
         # Get the marker pose relative to the camera
-        rvec, tvec, _ = cv2.aruco.estimatePoseSingleMarkers(
-            [marker_corners], marker_size, camera_matrix, dist_coeffs
-        )
+        rvecs, tvecs, _ = cv2.aruco.estimatePoseSingleMarkers([corner[0]], 
+                                                              self.marker_size, 
+                                                              camera_matrix, 
+                                                              dist_coeffs)
         
         # Create transform message
         transform_msg = TransformStamped()
         transform_msg.header.stamp = self.get_clock().now().to_msg()
         transform_msg.header.frame_id = 'head_front_camera_rgb_optical_frame'
-        transform_msg.child_frame_id = 'aruco_marker_frame'
+        transform_msg.child_frame_id = f'aruco_marker_{marker_id}'
         
         # Set translation
-        transform_msg.transform.translation.x = float(tvec[0][0][0])
-        transform_msg.transform.translation.y = float(tvec[0][0][1])
-        transform_msg.transform.translation.z = float(tvec[0][0][2])
+        transform_msg.transform.translation.x = float(tvecs[0][0][0])
+        transform_msg.transform.translation.y = float(tvecs[0][0][1])
+        transform_msg.transform.translation.z = float(tvecs[0][0][2])
         
         # Convert rotation vector to quaternion
-        rotation_matrix = np.eye(4)
-        rotation_matrix[:3, :3], _ = cv2.Rodrigues(rvec[0][0])
-        
-        # Convert to quaternion
-        from scipy.spatial.transform import Rotation as R
-        r = R.from_matrix(rotation_matrix[:3, :3])
+        rotation_matrix, _ = cv2.Rodrigues(rvecs[0][0])
+        r = R.from_matrix(rotation_matrix)
         quat = r.as_quat()  # x, y, z, w
         
         transform_msg.transform.rotation.x = float(quat[0])
@@ -199,7 +209,7 @@ class ArucoCubeDetection(Node):
         
         # Publish the transform
         self.aruco_publisher.publish(transform_msg)
-        self.get_logger().info(f"Published transform for marker ID 63")
+        self.get_logger().info(f"Published transform for ID {marker_id}")
         
         
 def main(args=None):
