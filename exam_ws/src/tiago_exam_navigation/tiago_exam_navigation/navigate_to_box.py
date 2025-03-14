@@ -62,22 +62,24 @@ class NavigateToBox(Node):
 
                     # Detect the faces of the box
                     faces = self.detect_box_faces(submatrix_masked)
-                    self.get_logger().info(f"Sub mask {submatrix_masked.shape}")
 
                     # Print information about the detected faces
-                    print(f"Detected {len(faces)} faces:")
-                    for i, face in enumerate(faces):
-                        self.get_logger().info(f"Face {i+1}:")
-                        self.get_logger().info(f"  Normal: {face['normal']}")
-                        self.get_logger().info(f"  Center: {face['center']}")
-                        self.get_logger().info(f"  Points: {len(face['points'])}")
+                    #print(f"Detected {len(faces)} faces:")
+                    #for i, face in enumerate(faces):
+                    #    self.get_logger().info(f"Face {i+1}:")
+                    #    self.get_logger().info(f"  Normal: {face['normal']}")
+                    #    self.get_logger().info(f"  Center: {face['center']}")
+                    #    self.get_logger().info(f"  Points: {len(face['points'])}")
                     i = 0
                     for face in faces:
                         if i == 0:
+                            # Color code: BGR
                             color = (0, 0, 255)
                         elif i == 1:
                             color = (0, 255, 0)
                         else:
+                            c_x, c_y = self.from_mt_to_pixel(face['center'])
+                            cv2.circle(cv_image, (c_x,c_y), 3, (255, 255, 255), -1)
                             color = (255, 0, 0)
                         i += 1
                         for x in face['points']:
@@ -131,6 +133,7 @@ class NavigateToBox(Node):
             face_info.face_number = f"Face {i}, color [{color[0]}, {color[1]}, {color[2]}]"
             face_info.center = list(face['center'])
             face_info.normal = list(face['normal'])
+            face_info.plane_coefficients = list(face['plane_coefficients'])
             #face_info.points = [Point(x=p[0], y=p[1], z=p[2]) for p in face['points']]
             box_faces_msg.faces.append(face_info)
             i += 1
@@ -187,8 +190,7 @@ class NavigateToBox(Node):
                 normal = plane_model[:3]
                 
                 # Ensure the normal points outward (assuming the box center is at the origin)
-                # If not, you might need to adjust this based on your coordinate system
-                if np.dot(normal, center) < 0:
+                if np.dot(normal, center) > 0:
                     normal = -normal
                     plane_model = -plane_model
                 
