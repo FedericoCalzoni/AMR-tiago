@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-package_name = 'gripper_control'
+package_name = 'tiago_exam_arm'
 
 setup(
     name=package_name,
@@ -13,18 +13,16 @@ setup(
     ],
     install_requires=['setuptools'],
     zip_safe=True,
-    maintainer='lele',
-    maintainer_email='emanuele.monsellato@studio.unibo.it',
+    maintainer='rosuser',
+    maintainer_email='rosuser@todo.todo',
     description='TODO: Package description',
     license='TODO: License declaration',
     tests_require=['pytest'],
     entry_points={
-        'console_scripts': [
-            'move_arm = gripper_control.move_arm:main',
-            'gripper_control = gripper_control.control_gripper:main',
-            'pick = gripper_control.pick:main',
-            'basic_pose = gripper_control.basic_pose:main',
-            'basic_gripper = gripper_control.basic_move_gripper:main',
+        "console_scripts": [
+            "1_aruco_tf_subscriber = tiago_exam_arm.1_aruco_tf_subscriber:main",
+            "2_aruco_grasp_pose_broadcaster = tiago_exam_arm.2_aruco_grasp_pose_broadcaster:main",
+            "3_move_arm = tiago_exam_arm.3_move_arm:main",
         ],
     },
 )
