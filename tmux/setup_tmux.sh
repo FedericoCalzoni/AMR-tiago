@@ -71,7 +71,7 @@ party_mode(){
     # pane 3
     tmux split-window -h -p 50  # Split horizontally
     tmux send-keys C-l
-    tmux send-keys "run-target-locked"
+    tmux send-keys "run-nav-to-box"
 
     # pane 5
     tmux select-pane -t 4

@@ -32,6 +32,7 @@ def generate_launch_description():
     
     # TODO: reset spown_coordinates = [0.0, -1.3, 0.0]
     spawn_coordinates = [0.5, -4.2, 0.0]
+    spawn_coordinates = [0.0, -1.3, 0.0]
 
     model_name = DeclareLaunchArgument(
         'model_name', default_value='tiago',
