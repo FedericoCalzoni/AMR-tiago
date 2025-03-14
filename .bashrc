@@ -104,8 +104,14 @@ rebuild-ws() {
     cd ~/AMR-tiago/tiago_ws || { echo "Error: tiago_ws directory not found." >&2; return 1; }
     trash build install log  # Clean existing build artifacts
     colcon build || return 1  # Build the workspace
+
+    echo "Building pymoveit2..."
+    cd ~/AMR-tiago/pymoveit2-4.1.1/ || { echo "Error: pymoveit2 directory not found." >&2; return 1; }
+    trash build install log  # Clean existing build artifacts
+    rosdep install -y -r -i --rosdistro ${ROS_DISTRO} --from-paths .
+    colcon build --merge-install --symlink-install --cmake-args "-DCMAKE_BUILD_TYPE=Release"
     
-    echo "Both workspaces rebuilt successfully!"
+    echo "All workspaces rebuilt!"
     cd ~  # Return to home directory
 }
 
@@ -116,7 +122,7 @@ rebuild-AMR-tiago() {
     trash build install log  # Clean existing build artifacts
     colcon build || return 1  # Build the workspace
     
-    echo "AMR-tiago workspace rebuilt successfully!"
+    echo "AMR-tiago workspace rebuilt!"
     cd ~  # Return to home directory
 }
 
@@ -131,8 +137,13 @@ build-ws() {
     echo "Building tiago_ws..."
     cd ~/AMR-tiago/tiago_ws || { echo "Error: tiago_ws directory not found." >&2; return 1; }
     colcon build || return 1  # Build the workspace
+
+    echo "Building pymoveit2..."
+    cd ~/AMR-tiago/pymoveit2-4.1.1/ || { echo "Error: pymoveit2 directory not found." >&2; return 1; }
+    rosdep install -y -r -i --rosdistro ${ROS_DISTRO} --from-paths .
+    colcon build --merge-install --symlink-install --cmake-args "-DCMAKE_BUILD_TYPE=Release"
     
-    echo "Both workspaces built successfully!"
+    echo "All workspaces built!"
     cd ~  # Return to home directory
 }
 
@@ -142,7 +153,7 @@ build-AMR-tiago() {
     cd ~/AMR-tiago/exam_ws || { echo "Error: AMR-tiago directory not found." >&2; return 1; }
     colcon build || return 1  # Build the workspace
     
-    echo "AMR-tiago workspace built successfully!"
+    echo "AMR-tiago workspace built!"
     cd ~  # Return to home directory
 }
 
@@ -203,6 +214,5 @@ export TURTLEBOT3_MODEL=burger
 source /opt/ros/humble/setup.bash
 source ~/AMR-tiago/ros2_ws/install/setup.bash
 source ~/AMR-tiago/tiago_ws/install/setup.bash
-# source ~/AMR-tiago/tiago_ws/src/install/setup.bash
 source ~/AMR-tiago/exam_ws/install/setup.bash
 source ~/AMR-tiago/pymoveit2-4.1.1/install/local_setup.bash
