@@ -11,23 +11,34 @@ from tiago_interfaces.msg import BoxInfo, FaceInfo
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 
+
+# from: head_front_camera_depth_optical_frame
+# to: head_front_camera_depth_frame
+# then to: base_footprint
+
 class BoxFaceNavigator(Node):
     def __init__(self):
         super().__init__('box_face_navigator')
-        
-        # Create the action client
+
         self.nav_client = ActionClient(self, NavigateToPose, 'navigate_to_pose')
+        self.get_logger().info("Navigation client initialized. Waiting for server...")
+        self.nav_client.wait_for_server()
+        self.get_logger().info("Connected to navigation server!")
         
-        # TF2 buffer and listener for coordinate transformations
-        #self.tf_buffer = tf2_ros.Buffer()
-        #self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
+        # Set up TF buffer with larger cache time
+        self.tf_buffer = tf2_ros.Buffer(cache_time=rclpy.duration.Duration(seconds=30.0))
+        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
+
         self.face_subscriber_ = self.create_subscription(BoxInfo, '/box/faces_info', self.face_callback, 10)
         self.image_subscription = self.create_subscription(Image, '/head_front_camera/rgb/image_raw', self.image_callback, 10)
         self.bridge = CvBridge()
         self.frame = None
+        self.yaw_threshold = 0.005
+        self.image_saved = False
+        self.navigation_in_progress = False
 
     def image_callback(self, msg):
-        if self.frame is not None:
+        if self.frame is not None and not self.image_saved:
             cv_image = self.bridge.imgmsg_to_cv2(msg, "bgr8")
 
             origin = self.from_mt_to_pixel(self.frame[3])
@@ -40,8 +51,8 @@ class BoxFaceNavigator(Node):
             z_axis_end = (int(origin[0] + self.frame[2][0] * scale), int(origin[1] - self.frame[2][1] * scale))
             cv2.arrowedLine(cv_image, origin, z_axis_end, (255, 0, 0), 2)
 
-            cv2.imshow("Camera Image", cv_image)
-            cv2.waitKey(1)
+            self.image_saved = True
+            cv2.imwrite("camera_image.png", cv_image)
 
     def from_mt_to_pixel(self, point):
         # Camera intrinsic parameters
@@ -63,280 +74,398 @@ class BoxFaceNavigator(Node):
         face_info = {
             'center': np.array([third_face.center[0], third_face.center[1], third_face.center[2]]),
             'normal': np.array([third_face.normal[0], third_face.normal[1], third_face.normal[2]]),
-            'plane_coefficients': np.array([third_face.plane_coefficients[0], third_face.plane_coefficients[1], third_face.plane_coefficients[2]])
+            'plane_coefficients': np.array([third_face.plane_coefficients[0], third_face.plane_coefficients[1], 
+                        third_face.plane_coefficients[2], third_face.plane_coefficients[3]])
             #'points': np.array([[point[0], point[1], point[2]] for point in third_face.points])
         }
 
         # Create face reference frame
-        self.create_frame(face_info)
+        self.get_face_frame(face_info)
 
-        # Navigate to the third face
-        #self.navigate_to_face(face_info)
+        # Process the face and navigate directly
+        self.process_face_and_navigate(face_info)
 
-    def create_frame(self, face_info): 
+    def process_face_and_navigate(self, face_info):
+        """Process face info and navigate in one step."""
+        if self.navigation_in_progress:
+            return
+            
+        self.navigation_in_progress = True
+        
+        try:
+            # Transform face from camera frame to map frame
+            transformed_face = self.transform_face_to_map(face_info)
+            if transformed_face is None:
+                self.get_logger().warn('Could not transform face to map frame')
+                self.navigation_in_progress = False
+                return
+                
+            # Calculate face frame
+            self.get_face_frame(transformed_face)
+            
+            # Calculate navigation goal
+            target_pose = self.get_target_pose_from_face_frame()
+            if target_pose is None:
+                self.get_logger().error('Failed to calculate target pose')
+                self.navigation_in_progress = False
+                return
+                
+            # Validate pose before sending
+            if not self.is_valid_pose(target_pose):
+                self.get_logger().warn('Generated invalid navigation pose, skipping')
+                self.navigation_in_progress = False
+                return
+                
+            # Send navigation goal
+            self.send_navigation_goal(target_pose)
+            
+        except Exception as e:
+            self.get_logger().error(f'Error in processing: {e}')
+            self.navigation_in_progress = False
+
+    def get_face_frame(self, face_info): 
         face_center = face_info['center']
         face_normal = face_info['normal']
         
         # Define the z-axis as pointing upward
         z_axis = np.array([0, 0, 1])
         
-        # Ensure the normal is a unit vector
-        face_normal = face_normal / np.linalg.norm(face_normal)
+        # Ensure the normal is a unit vector - x-axis
+        x_axis = face_normal / np.linalg.norm(face_normal)
         
         # Calculate the y-axis as the cross product of z-axis and face normal
-        y_axis = np.cross(z_axis, face_normal)
+        y_axis = np.cross(z_axis, x_axis)
         y_axis = y_axis / np.linalg.norm(y_axis)
-        
-        # Recalculate the x-axis to ensure orthogonality
-        x_axis = np.cross(y_axis, z_axis)
-        x_axis = x_axis / np.linalg.norm(x_axis)
 
         self.frame = [x_axis, y_axis, z_axis, face_center]
-        
-        # Create the transformation matrix
-        #transformation_matrix = np.eye(4)
-        #transformation_matrix[0:3, 0] = x_axis
-        #transformation_matrix[0:3, 1] = y_axis
-        #transformation_matrix[0:3, 2] = z_axis
-        #transformation_matrix[0:3, 3] = face_center
-        
-        # Convert the transformation matrix to a PoseStamped message
-        #face_frame_pose = PoseStamped()
-        #face_frame_pose.header.frame_id = 'world'
-        #face_frame_pose.header.stamp = self.get_clock().now().to_msg()
-        
-        #face_frame_pose.pose.position.x = face_center[0]
-        #face_frame_pose.pose.position.y = face_center[1]
-        #face_frame_pose.pose.position.z = face_center[2]
-        
-        # Convert rotation matrix to quaternion
-        #quaternion = tf_transformations.quaternion_from_matrix(transformation_matrix)
-        #face_frame_pose.pose.orientation.x = quaternion[0]
-        #face_frame_pose.pose.orientation.y = quaternion[1]
-        #face_frame_pose.pose.orientation.z = quaternion[2]
-        #face_frame_pose.pose.orientation.w = quaternion[3]
-        
-        # Publish the frame for visualization
-        #self.tf_broadcaster = tf2_ros.TransformBroadcaster(self)
-        #transform = tf2_geometry_msgs.PoseStamped_to_TransformStamped(face_frame_pose)
-        #transform.child_frame_id = 'face_frame'
-        #self.tf_broadcaster.sendTransform(transform)
 
-    def calculate_approach_pose(self, face_info, camera_frame, robot_frame, approach_distance=0.5):
-        """
-        Calculate a suitable pose to approach the selected face.
-        
-        Parameters:
-        -----------
-        face_info : dict
-            Dictionary containing face information with keys:
-            - 'center': center point of the face
-            - 'normal': normal vector of the face
-        camera_frame : str
-            Name of the camera frame (e.g., 'xtion_rgb_optical_frame')
-        robot_frame : str
-            Name of the robot's base frame (e.g., 'base_footprint')
-        approach_distance : float
-            Distance to maintain from the face (in meters)
-            
-        Returns:
-        --------
-        PoseStamped
-            Navigation goal pose for the robot
-        """
-        # Extract face center and normal
-        face_center = face_info['center']
-        face_normal = face_info['normal']
-        
-        # 1. Create a pose in the camera frame
-        approach_point = face_center - face_normal * approach_distance
-        
-        # Create a PoseStamped message in the camera frame
-        pose_in_camera = PoseStamped()
-        pose_in_camera.header.frame_id = camera_frame
-        pose_in_camera.header.stamp = self.get_clock().now().to_msg()
-        
-        # Set the position
-        pose_in_camera.pose.position.x = approach_point[0]
-        pose_in_camera.pose.position.y = approach_point[1]
-        pose_in_camera.pose.position.z = approach_point[2]
-        
-        # Calculate orientation to face the box
-        # We want the robot to look at the face
-        # For orientation, we need to compute a quaternion from the desired look direction
-        # This is a simplified approach - we just make the robot face the box
-        
-        # First, we project the face normal onto the x-y plane (assuming z is up)
-        # This gives us the direction in the horizontal plane
-        horizontal_direction = np.array([face_normal[0], face_normal[1], 0])
-        
-        # Normalize the vector
-        norm = np.linalg.norm(horizontal_direction)
-        if norm < 1e-6:
-            # If the normal is mostly vertical, use a default direction
-            horizontal_direction = np.array([1, 0, 0])
-        else:
-            horizontal_direction = horizontal_direction / norm
-        
-        # Calculate the yaw angle from this direction
-        yaw = math.atan2(horizontal_direction[1], horizontal_direction[0])
-        
-        # Convert to quaternion (simplified version just using yaw)
-        pose_in_camera.pose.orientation.x = 0.0
-        pose_in_camera.pose.orientation.y = 0.0
-        pose_in_camera.pose.orientation.z = math.sin(yaw / 2)
-        pose_in_camera.pose.orientation.w = math.cos(yaw / 2)
-        
-        # 2. Transform the pose to the robot's frame
+    def transform_face_to_map(self, face_info):
+        """Transform face info from camera frame to map frame."""
         try:
-            pose_in_robot_frame = self.tf_buffer.transform(pose_in_camera, robot_frame, rclpy.duration.Duration(seconds=1.0))
-            return pose_in_robot_frame
-        except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
-            self.get_logger().error(f'Could not transform pose: {e}')
+            # Use a single transform if possible to avoid timing issues
+            try:
+                # First check if we can do a direct transform
+                if self.tf_buffer.can_transform(
+                    'map', 'head_front_camera_depth_optical_frame',
+                    rclpy.time.Time(),
+                    timeout=rclpy.duration.Duration(seconds=1.0)
+                ):
+                    # Create a PoseStamped in the optical frame
+                    center_point = PoseStamped()
+                    center_point.header.frame_id = 'head_front_camera_depth_optical_frame'
+                    # Use current time
+                    center_point.header.stamp = rclpy.time.Time().to_msg()
+                    center_point.pose.position.x = float(face_info['center'][0])
+                    center_point.pose.position.y = float(face_info['center'][1])
+                    center_point.pose.position.z = float(face_info['center'][2])
+                    center_point.pose.orientation.w = 1.0  # Identity quaternion
+                    
+                    # Transform directly to map frame
+                    transformed_center = self.tf_buffer.transform(
+                        center_point, 'map',
+                        timeout=rclpy.duration.Duration(seconds=1.0)
+                    )
+                    
+                    # Similarly transform a point along the normal
+                    normal_point = PoseStamped()
+                    normal_point.header.frame_id = 'head_front_camera_depth_optical_frame'
+                    normal_point.header.stamp = rclpy.time.Time().to_msg()
+                    normal_point.pose.position.x = float(face_info['center'][0] + face_info['normal'][0])
+                    normal_point.pose.position.y = float(face_info['center'][1] + face_info['normal'][1])
+                    normal_point.pose.position.z = float(face_info['center'][2] + face_info['normal'][2])
+                    normal_point.pose.orientation.w = 1.0  # Identity quaternion
+                    
+                    transformed_normal_point = self.tf_buffer.transform(
+                        normal_point, 'map',
+                        timeout=rclpy.duration.Duration(seconds=1.0)
+                    )
+                    
+                    # Calculate the new normal vector in the map frame
+                    new_center = np.array([transformed_center.pose.position.x, 
+                                        transformed_center.pose.position.y, 
+                                        transformed_center.pose.position.z])
+                    new_normal_point = np.array([transformed_normal_point.pose.position.x, 
+                                            transformed_normal_point.pose.position.y, 
+                                            transformed_normal_point.pose.position.z])
+                    new_normal = new_normal_point - new_center
+                    
+                    # Normalize the new normal vector
+                    norm = np.linalg.norm(new_normal)
+                    if norm > 0:
+                        new_normal = new_normal / norm
+                    else:
+                        self.get_logger().warn('Normal vector has zero length after transformation')
+                        return None
+                    
+                    # Create the transformed face info
+                    transformed_face_info = {
+                        'center': new_center,
+                        'normal': new_normal,
+                        'plane_coefficients': face_info['plane_coefficients']  # Keep the original coefficients
+                    }
+                    
+                    self.get_logger().info(f'Transformed face center from {face_info["center"]} to {new_center}')
+                    #self.get_logger().info(f'Transformed face normal from {face_info["normal"]} to {new_normal}')
+                    
+                    return transformed_face_info
+                else:
+                    self.get_logger().warn('Cannot transform directly from optical frame to map')
+                    return None
+                    
+            except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
+                self.get_logger().warn(f'Direct transform failed: {e}. Trying alternative method...')
+                
+                # Alternative method: use the latest available transform
+                transform = self.tf_buffer.lookup_transform(
+                    'map',
+                    'head_front_camera_depth_optical_frame',
+                    rclpy.time.Time(),
+                    timeout=rclpy.duration.Duration(seconds=1.0)
+                )
+                
+                # Create stamped point
+                p = tf2_geometry_msgs.PointStamped()
+                p.header.frame_id = 'head_front_camera_depth_optical_frame'
+                p.header.stamp = transform.header.stamp  # Use the same timestamp as the transform
+                p.point.x = float(face_info['center'][0])
+                p.point.y = float(face_info['center'][1])
+                p.point.z = float(face_info['center'][2])
+                
+                # Transform point
+                transformed_p = self.tf_buffer.transform(p, 'map')
+                
+                # Create normal point
+                normal_p = tf2_geometry_msgs.PointStamped()
+                normal_p.header.frame_id = 'head_front_camera_depth_optical_frame'
+                normal_p.header.stamp = transform.header.stamp
+                normal_p.point.x = float(face_info['center'][0] + face_info['normal'][0])
+                normal_p.point.y = float(face_info['center'][1] + face_info['normal'][1])
+                normal_p.point.z = float(face_info['center'][2] + face_info['normal'][2])
+                
+                # Transform normal point
+                transformed_normal_p = self.tf_buffer.transform(normal_p, 'map')
+                
+                # Calculate new center and normal
+                new_center = np.array([transformed_p.point.x, transformed_p.point.y, transformed_p.point.z])
+                new_normal_point = np.array([transformed_normal_p.point.x, transformed_normal_p.point.y, transformed_normal_p.point.z])
+                new_normal = new_normal_point - new_center
+                
+                # Normalize
+                norm = np.linalg.norm(new_normal)
+                if norm > 0:
+                    new_normal = new_normal / norm
+                else:
+                    self.get_logger().warn('Normal vector has zero length after transformation')
+                    return None
+                
+                transformed_face_info = {
+                    'center': new_center,
+                    'normal': new_normal,
+                    'plane_coefficients': face_info['plane_coefficients']
+                }
+                
+                return transformed_face_info
+        
+        except Exception as e:
+            self.get_logger().error(f'Unexpected error in transform_face_to_map: {e}')
             return None
 
-    def navigate_to_face(self, face_info, camera_frame='xtion_rgb_optical_frame', robot_frame='base_footprint'):
-        """
-        Navigate the robot to the selected face.
-        
-        Parameters:
-        -----------
-        face_info : dict
-            Dictionary containing face information
-        camera_frame : str
-            Name of the camera frame
-        robot_frame : str
-            Name of the robot's base frame
-        
-        Returns:
-        --------
-        bool
-            True if navigation request was sent successfully, False otherwise
-        """
-        # Calculate the approach pose
-        approach_pose = self.calculate_approach_pose(face_info, camera_frame, robot_frame)
-        
-        if approach_pose is None:
-            self.get_logger().error('Failed to calculate approach pose')
-            return False
-        
-        # Wait for the action server
-        self.get_logger().info('Waiting for navigation action server...')
-        if not self.nav_client.wait_for_server(timeout_sec=10.0):
-            self.get_logger().error('Navigation action server not available')
-            return False
-        
-        # Create the goal
-        nav_goal = NavigateToPose.Goal()
-        nav_goal.pose = approach_pose
-        
-        # Send the goal
-        self.get_logger().info('Sending navigation goal')
-        send_goal_future = self.nav_client.send_goal_async(nav_goal)
-        
-        # Add a callback to receive the result
-        send_goal_future.add_done_callback(self.goal_response_callback)
-        return True
-    
-    def goal_response_callback(self, future):
-        """
-        Callback for the response to the navigation goal request.
-        """
-        goal_handle = future.result()
-        if not goal_handle.accepted:
-            self.get_logger().error('Navigation goal rejected')
+    def navigate_to_face(self, face_info):
+        """Navigate to the face with proper alignment and spacing."""
+        # Skip if navigation is already in progress
+        if self.navigation_in_progress:
+            return
+            
+        # Get the target pose from the face frame
+        target_pose = self.get_target_pose_from_face_frame()
+        if target_pose is None:
+            return
+            
+        # Validate the pose before sending
+        if not self.is_valid_pose(target_pose):
+            self.get_logger().warn('Generated invalid navigation pose, skipping')
             return
         
-        self.get_logger().info('Navigation goal accepted')
+        # Mark navigation as in progress
+        self.navigation_in_progress = True
+        
+        # Create and send the navigation goal
+        self.send_navigation_goal(target_pose)
+
+    def is_valid_pose(self, pose):
+        """Check if a pose is valid and reachable."""
+        # Basic sanity checks for the pose
+        x, y, z = pose.pose.position.x, pose.pose.position.y, pose.pose.position.z
+        
+        # Check if the position is within reasonable bounds
+        # Adjust these values based on your environment
+        if abs(x) > 10.0 or abs(y) > 10.0 or abs(z) > 1.0:
+            return False
+            
+        # For TIAGo, we typically want to keep z close to 0 since it's a ground robot
+        if abs(z) > 0.1:  # TIAGo can't fly!
+            self.get_logger().warn(f'Z value too high: {z}. Setting to 0.')
+            pose.pose.position.z = 0.0
+        
+        return True
+
+    def send_navigation_goal(self, pose):
+        """Send the navigation goal to the action server."""
+        if pose is None:
+            self.get_logger().error('Cannot send navigation goal: pose is None')
+            self.navigation_in_progress = False
+            return
+        
+        # Create the goal message
+        goal_msg = NavigateToPose.Goal()
+        goal_msg.pose = pose
+        
+        # Send the goal
+        self.get_logger().info(f'Sending navigation goal to position: [{pose.pose.position.x}, {pose.pose.position.y}, {pose.pose.orientation.z}]')
+        
+        # Create a future to get the result
+        future = self.nav_client.send_goal_async(goal_msg)
+        future.add_done_callback(self.goal_response_callback)
+
+    def goal_response_callback(self, future):
+        """Handle the goal response."""
+        goal_handle = future.result()
+        
+        if not goal_handle.accepted:
+            self.get_logger().error('Goal was rejected by the action server')
+            self.navigation_in_progress = False
+            return
+        
+        self.get_logger().info('Goal accepted by the action server')
         
         # Get the result
         result_future = goal_handle.get_result_async()
         result_future.add_done_callback(self.get_result_callback)
-    
-    def get_result_callback(self, future):
-        """
-        Callback for the navigation result.
-        """
-        result = future.result().result
-        self.get_logger().info(f'Navigation finished with result: {result}')
 
-def select_best_face_to_approach(faces, min_face_size=0.1):
-    """
-    Select the best face to approach based on various criteria.
-    
-    Parameters:
-    -----------
-    faces : list of dict
-        List of face information as returned by detect_box_faces
-    min_face_size : float
-        Minimum face size to consider (square meters)
-    
-    Returns:
-    --------
-    dict or None
-        Information about the selected face, or None if no suitable face found
-    """
-    if not faces:
-        return None
-    
-    best_face = None
-    best_score = float('-inf')
-    
-    for face in faces:
-        # Skip faces that are too small
-        points = face['points']
-        if len(points) < 10:  # Arbitrary threshold
-            continue
-        
-        # Estimate face size by computing the area of the convex hull
-        # This is a simplification - you might want to use a more accurate approach
-        # like projecting the points onto the plane and computing the area
-        
-        # Instead, let's use the variance of the points as a proxy for face size
-        variance = np.var(points, axis=0)
-        face_size_estimate = np.sqrt(variance[0]**2 + variance[1]**2 + variance[2]**2)
-        
-        if face_size_estimate < min_face_size:
-            continue
-        
-        # Check if the face normal is pointing toward the camera
-        # We prefer faces that are more facing the camera
-        # Normal vector is assumed to point outward from the box
-        normal = face['normal']
-        center = face['center']
-        
-        # Calculate the angle between the normal and the vector from center to camera
-        # The camera is at the origin of its own frame, so the vector is just -center
-        vector_to_camera = -center
-        vector_to_camera_norm = np.linalg.norm(vector_to_camera)
-        
-        if vector_to_camera_norm > 0:
-            vector_to_camera = vector_to_camera / vector_to_camera_norm
-            
-            # Calculate the dot product (cos of the angle)
-            dot_product = np.dot(normal, vector_to_camera)
-            
-            # Higher dot product means the face is more facing the camera
-            # We want to approach faces that are more visible
-            visibility_score = dot_product
+    def get_result_callback(self, future):
+        """Handle the result of the navigation action."""
+        status = future.result().status
+        if status == 4:  # Succeeded
+            self.get_logger().info('Navigation goal succeeded')
         else:
-            visibility_score = -1  # Default low score if the center is at the origin
+            self.get_logger().warning(f'Navigation goal failed with status: {status}')
         
-        # Calculate the distance to the face
-        distance = np.linalg.norm(center)
+        # Reset navigation flag to allow new goals
+        self.navigation_in_progress = False
+
+    def get_target_pose_from_face_frame(self):
+        """Convert face frame to a target pose for navigation."""
+        if not hasattr(self, 'frame') or self.frame is None:
+            self.get_logger().error('Face frame not available')
+            return None
         
-        # Combine factors into a score
-        # We prefer faces that are:
-        # 1. Larger
-        # 2. More facing the camera
-        # 3. Closer to the camera
-        score = (face_size_estimate * 0.5) + (visibility_score * 0.3) + (1.0 / (distance + 0.1) * 0.2)
+        # Extract the frame components
+        x_axis, y_axis, z_axis, face_center = self.frame
         
-        if score > best_score:
-            best_score = score
-            best_face = face
-    
-    return best_face
+        # The goal is 0.5 meters away from the face along its normal (x-axis)
+        target_position = face_center + 0.5 * x_axis  # Move away from the face
+        
+        # Calculate yaw from the x_axis + check wheter they are aligned but pointing in opposite directions
+        self.get_logger().info(f"prima componente: {x_axis[0]}")
+        self.get_logger().info(f"seconda copmponente: {x_axis[0]}")
+        # normal will be uscente dalla faccia, x axis will point toward the face -> default yaw = 180 ergo: np.pi - ...
+        yaw = np.pi - math.atan2(x_axis[1], x_axis[0])
+        if abs(yaw) < self.yaw_threshold:
+            yaw = 0.0
+        
+        # Create the pose
+        pose = PoseStamped()
+        pose.header.frame_id = 'map'
+        pose.header.stamp = self.get_clock().now().to_msg()
+        
+        # Set position
+        pose.pose.position.x = float(target_position[0])
+        pose.pose.position.y = float(target_position[1])
+        pose.pose.position.z = 0.0  # Ground robot
+        
+        # Set orientation
+        pose.pose.orientation.z = yaw
+        pose.pose.orientation.w = 1.0
+        
+        return pose
+
+    def select_best_face_to_approach(faces, min_face_size=0.1):
+        """
+        Select the best face to approach based on various criteria.
+        
+        Parameters:
+        -----------
+        faces : list of dict
+            List of face information as returned by detect_box_faces
+        min_face_size : float
+            Minimum face size to consider (square meters)
+        
+        Returns:
+        --------
+        dict or None
+            Information about the selected face, or None if no suitable face found
+        """
+        if not faces:
+            return None
+        
+        best_face = None
+        best_score = float('-inf')
+        
+        for face in faces:
+            # Skip faces that are too small
+            points = face['points']
+            if len(points) < 10:  # Arbitrary threshold
+                continue
+            
+            # Estimate face size by computing the area of the convex hull
+            # This is a simplification - you might want to use a more accurate approach
+            # like projecting the points onto the plane and computing the area
+            
+            # Instead, let's use the variance of the points as a proxy for face size
+            variance = np.var(points, axis=0)
+            face_size_estimate = np.sqrt(variance[0]**2 + variance[1]**2 + variance[2]**2)
+            
+            if face_size_estimate < min_face_size:
+                continue
+            
+            # Check if the face normal is pointing toward the camera
+            # We prefer faces that are more facing the camera
+            # Normal vector is assumed to point outward from the box
+            normal = face['normal']
+            center = face['center']
+            
+            # Calculate the angle between the normal and the vector from center to camera
+            # The camera is at the origin of its own frame, so the vector is just -center
+            vector_to_camera = -center
+            vector_to_camera_norm = np.linalg.norm(vector_to_camera)
+            
+            if vector_to_camera_norm > 0:
+                vector_to_camera = vector_to_camera / vector_to_camera_norm
+                
+                # Calculate the dot product (cos of the angle)
+                dot_product = np.dot(normal, vector_to_camera)
+                
+                # Higher dot product means the face is more facing the camera
+                # We want to approach faces that are more visible
+                visibility_score = dot_product
+            else:
+                visibility_score = -1  # Default low score if the center is at the origin
+            
+            # Calculate the distance to the face
+            distance = np.linalg.norm(center)
+            
+            # Combine factors into a score
+            # We prefer faces that are:
+            # 1. Larger
+            # 2. More facing the camera
+            # 3. Closer to the camera
+            score = (face_size_estimate * 0.5) + (visibility_score * 0.3) + (1.0 / (distance + 0.1) * 0.2)
+            
+            if score > best_score:
+                best_score = score
+                best_face = face
+        
+        return best_face
 
 
 def main(args=None):

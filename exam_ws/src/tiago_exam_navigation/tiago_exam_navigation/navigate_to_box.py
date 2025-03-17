@@ -63,7 +63,7 @@ class NavigateToBox(Node):
                     # Detect the faces of the box
                     faces = self.detect_box_faces(submatrix_masked)
 
-                    # Print information about the detected faces
+                    # Log information about the detected faces
                     #print(f"Detected {len(faces)} faces:")
                     #for i, face in enumerate(faces):
                     #    self.get_logger().info(f"Face {i+1}:")
