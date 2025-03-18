@@ -370,7 +370,10 @@ class BoxFaceNavigator(Node):
         #self.get_logger().info(f"prima componente: {x_axis[0]}")
         #self.get_logger().info(f"seconda copmponente: {x_axis[0]}")
         # normal will be uscente dalla faccia, x axis will point toward the face -> default yaw = 180 ergo: np.pi - ...
-        yaw = np.pi - math.atan2(x_axis[1], x_axis[0])
+        if yaw > 0:
+            yaw = math.atan2(x_axis[1], x_axis[0]) - np.pi
+        elif yaw < 0:
+            yaw = math.atan2(x_axis[1], x_axis[0]) + np.pi
         if abs(yaw) < self.yaw_threshold:
             yaw = 0.0
         
