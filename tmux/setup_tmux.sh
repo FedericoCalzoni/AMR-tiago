@@ -60,7 +60,7 @@ party_mode(){
 
     # pane 4
     tmux send-keys C-l
-    tmux send-keys "ros2 "
+    tmux send-keys "ros2 run tiago_exam_navigation align_to_box_face"
 
     # pane 2
     tmux select-pane -t 1
