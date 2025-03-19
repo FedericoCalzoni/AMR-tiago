@@ -20,10 +20,12 @@ class NavigateToBox(Node):
         super().__init__('navigate_to_box')
         self.publisher_ = self.create_publisher(Twist, '/cmd_vel', 10)
         self.faces_publisher_ = self.create_publisher(BoxInfo, '/box/faces_info', 10)
+        self.z_face_publisher_ = self.create_publisher(FaceInfo, '/box/z_face_info', 10)
         self.subscription = self.create_subscription(Image, '/head_front_camera/rgb/image_raw', self.image_callback, 10)
         self.depth_subscription = self.create_subscription(PointCloud2, '/head_front_camera/depth_registered/points', self.depth_callback, 10)
         self.bridge = CvBridge()
         self.twist = Twist()
+        self.faces_info_sent = False
         self.box_detected = False
         self.depth_data = None
         self.not_read = False
@@ -78,8 +80,6 @@ class NavigateToBox(Node):
                         elif i == 1:
                             color = (0, 255, 0)
                         else:
-                            c_x, c_y = self.from_mt_to_pixel(face['center'])
-                            cv2.circle(cv_image, (c_x,c_y), 3, (255, 255, 255), -1)
                             color = (255, 0, 0)
                         i += 1
                         for x in face['points']:
@@ -87,12 +87,12 @@ class NavigateToBox(Node):
                             cv_image[px_y, px_x] = color
 
                     # Publish faces information - custom message
-                    self.publish_faces_info(faces)
-            else:
-                self.box_detected = False
+                    self.publish_faces_info(faces, cv_image)
+            elif not self.faces_info_sent:
+                self.box_detected = True
                 self.spin()
-        else:
-            self.box_detected = False
+        elif not self.faces_info_sent:
+            self.box_detected = True
             self.spin()
 
         cv2.imshow("Camera Feed", cv_image)
@@ -119,25 +119,52 @@ class NavigateToBox(Node):
         self.twist.angular.z = -0.3
         self.publisher_.publish(self.twist)
 
-    def publish_faces_info(self, faces):
+    def publish_faces_info(self, faces, cv_image):
         box_faces_msg = BoxInfo()
+        z_face_info_msg = FaceInfo()
+
+        # Find the face whose normal is closest to the z-axis which in camera ref frame is y-axis
+        y_axis = np.array([0, 1, 0])  # Standard y-axis
+        z_face = max(faces, key=lambda face: np.dot(face['normal'], -y_axis))
+
+        c_x, c_y = self.from_mt_to_pixel(z_face['center'])
+        cv2.circle(cv_image, (c_x,c_y), 5, (0, 0, 0), -1)
+        
+        z_face_info_msg.face_number = "Z-axis face"
+        z_face_info_msg.center = list(z_face['center'])
+        z_face_info_msg.normal = list(z_face['normal'])
+        z_face_info_msg.plane_coefficients = list(z_face['plane_coefficients'])
+        z_face_info_msg.points = [Point(x=p[0], y=p[1], z=p[2]) for p in z_face['points']]
+        self.z_face_publisher_.publish(z_face_info_msg)
+        
+        i = 0
+        for face in faces:
+            if all(face['center'][i] == z_face['center'][i] for i in range(3)):
+                z_face_index = i
+                break
+            i += 1
+        
+        faces.pop(z_face_index)  # Remove the Z-axis face from the list
         for face in faces:
             i = 0
             if i == 0:
                 color = (0, 0, 255)
-            elif i == 1:
-                color = (0, 255, 0)
             else:
-                color = (255, 0, 0)
+                color = (0, 255, 0)
+            
+            c_x, c_y = self.from_mt_to_pixel(face['center'])
+            cv2.circle(cv_image, (c_x,c_y), 5, (255, 255, 255), -1)
+            
             face_info = FaceInfo()
             face_info.face_number = f"Face {i}, color [{color[0]}, {color[1]}, {color[2]}]"
             face_info.center = list(face['center'])
             face_info.normal = list(face['normal'])
             face_info.plane_coefficients = list(face['plane_coefficients'])
-            #face_info.points = [Point(x=p[0], y=p[1], z=p[2]) for p in face['points']]
+            face_info.points = [Point(x=p[0], y=p[1], z=p[2]) for p in face['points']]
             box_faces_msg.faces.append(face_info)
             i += 1
         self.faces_publisher_.publish(box_faces_msg)
+        self.faces_info_sent = True
 
     def detect_box_faces(self, points, max_iterations=100, min_plane_points=10, distance_threshold=0.01):
         """

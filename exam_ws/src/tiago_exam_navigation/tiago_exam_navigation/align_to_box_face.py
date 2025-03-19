@@ -32,7 +32,6 @@ class BoxFaceNavigator(Node):
         self.face_subscriber_ = self.create_subscription(BoxInfo, '/box/faces_info', self.face_callback, 10)
         self.image_subscription = self.create_subscription(Image, '/head_front_camera/rgb/image_raw', self.image_callback, 10)
         self.bridge = CvBridge()
-        self.target_face = 2 # index of the face we are interested in
         self.frame = None
         self.yaw_threshold = 0.0025
         self.image_saved = False
@@ -69,60 +68,54 @@ class BoxFaceNavigator(Node):
         return px, py
 
     def face_callback(self, msg):
-        # Extract the third face
-        third_face = msg.faces[self.target_face]
-        # Convert FaceInfo to a dictionary
-        face_info = {
-            'center': np.array([third_face.center[0], third_face.center[1], third_face.center[2]]),
-            'normal': np.array([third_face.normal[0], third_face.normal[1], third_face.normal[2]]),
-            'plane_coefficients': np.array([third_face.plane_coefficients[0], third_face.plane_coefficients[1], 
-                        third_face.plane_coefficients[2], third_face.plane_coefficients[3]])
-            #'points': np.array([[point[0], point[1], point[2]] for point in third_face.points])
-        }
+        faces = []
+        for i in range(2):
+            face = msg.faces[i]
+            face_info = {
+                'center': np.array([face.center[0], face.center[1], face.center[2]]),
+                'normal': np.array([face.normal[0], face.normal[1], face.normal[2]]),
+                'plane_coefficients': np.array([face.plane_coefficients[0], face.plane_coefficients[1], 
+                            face.plane_coefficients[2], face.plane_coefficients[3]]),
+                'points': np.array([[point.x, point.y, point.z] for point in face.points])
+            }
+            faces.append(face_info) 
 
-        # Create face reference frame
-        self.get_face_frame(face_info)
+        # Choose best face
+        best_face = self.select_best_face_to_approach(faces)
 
         # Process the face and navigate directly
-        self.process_face_and_navigate(face_info)
+        if best_face is not None:
+            self.process_face_and_navigate(best_face)
 
     def process_face_and_navigate(self, face_info):
         """Process face info and navigate in one step."""
-        if self.navigation_in_progress:
-            return
-            
-        self.navigation_in_progress = True
-        
         try:
-            # Transform face from camera frame to map frame
-            transformed_face = self.transform_face_to_map(face_info)
-            if transformed_face is None:
-                self.get_logger().warn('Could not transform face to map frame')
-                self.navigation_in_progress = False
+            if self.navigation_in_progress:
                 return
                 
+            self.navigation_in_progress = True
+                    
             # Calculate face frame
-            self.get_face_frame(transformed_face)
-            
+            self.get_face_frame(face_info)
+                
             # Calculate navigation goal
             target_pose = self.get_target_pose_from_face_frame()
             if target_pose is None:
                 self.get_logger().error('Failed to calculate target pose')
                 self.navigation_in_progress = False
                 return
-                
+                    
             # Validate pose before sending
             if not self.is_valid_pose(target_pose):
                 self.get_logger().warn('Generated invalid navigation pose, skipping')
                 self.navigation_in_progress = False
                 return
-                
-            # Send navigation goal
-            self.send_navigation_goal(target_pose)
-            
         except Exception as e:
             self.get_logger().error(f'Error in processing: {e}')
             self.navigation_in_progress = False
+                
+        # Send navigation goal
+        self.send_navigation_goal(target_pose)            
 
     def get_face_frame(self, face_info): 
         face_center = face_info['center']
@@ -202,7 +195,8 @@ class BoxFaceNavigator(Node):
                     transformed_face_info = {
                         'center': new_center,
                         'normal': new_normal,
-                        'plane_coefficients': face_info['plane_coefficients']  # Keep the original coefficients
+                        'plane_coefficients': face_info['plane_coefficients'],  # Keep the original coefficients
+                        'points': face_info['points'] # Keep original points, used only in selection of the best face 
                     }
                     
                     self.get_logger().info(f'Transformed face center from {face_info["center"]} to {new_center}')
@@ -262,7 +256,8 @@ class BoxFaceNavigator(Node):
                 transformed_face_info = {
                     'center': new_center,
                     'normal': new_normal,
-                    'plane_coefficients': face_info['plane_coefficients']
+                    'plane_coefficients': face_info['plane_coefficients'],
+                    'points': face_info['points']
                 }
                 
                 return transformed_face_info
@@ -394,7 +389,7 @@ class BoxFaceNavigator(Node):
         
         return pose
 
-    def select_best_face_to_approach(faces, min_face_size=0.1):
+    def select_best_face_to_approach(self, faces):
         """
         Select the best face to approach based on various criteria.
         
@@ -409,67 +404,49 @@ class BoxFaceNavigator(Node):
         --------
         dict or None
             Information about the selected face, or None if no suitable face found
-        """
-        if not faces:
-            return None
-        
+        """ 
         best_face = None
         best_score = float('-inf')
-        
-        for face in faces:
-            # Skip faces that are too small
-            points = face['points']
-            if len(points) < 10:  # Arbitrary threshold
-                continue
             
-            # Estimate face size by computing the area of the convex hull
-            # This is a simplification - you might want to use a more accurate approach
-            # like projecting the points onto the plane and computing the area
+        for camera_face in faces:
+            center = camera_face['center']    
+            # Transform the face into the map referene frame
+            transformed_face = self.transform_face_to_map(camera_face)
+            if transformed_face is None:
+                self.get_logger().warn('Could not transform face to map frame')
+                self.navigation_in_progress = False
+                return
             
-            # Instead, let's use the variance of the points as a proxy for face size
+            points = transformed_face['points']
+            normal = transformed_face['normal']
+                    
+            # Let's use the variance of the points as a proxy for face size
             variance = np.var(points, axis=0)
-            face_size_estimate = np.sqrt(variance[0]**2 + variance[1]**2 + variance[2]**2)
-            
-            if face_size_estimate < min_face_size:
-                continue
-            
-            # Check if the face normal is pointing toward the camera
-            # We prefer faces that are more facing the camera
-            # Normal vector is assumed to point outward from the box
-            normal = face['normal']
-            center = face['center']
-            
-            # Calculate the angle between the normal and the vector from center to camera
+            face_size_estimate = np.sqrt(variance[0]**2 + variance[1]**2 + variance[2]**2)        
+                    
+            # Calculate the distance between the camera and the center
             # The camera is at the origin of its own frame, so the vector is just -center
             vector_to_camera = -center
-            vector_to_camera_norm = np.linalg.norm(vector_to_camera)
-            
-            if vector_to_camera_norm > 0:
-                vector_to_camera = vector_to_camera / vector_to_camera_norm
+            distance = np.linalg.norm(vector_to_camera)
+                  
+            # Calculate the yaw required to align to the face
+            yaw = math.atan2(normal[1], normal[0])
+            if yaw > 0:
+                yaw = yaw - np.pi
+            elif yaw < 0:
+                yaw = yaw + np.pi
                 
-                # Calculate the dot product (cos of the angle)
-                dot_product = np.dot(normal, vector_to_camera)
-                
-                # Higher dot product means the face is more facing the camera
-                # We want to approach faces that are more visible
-                visibility_score = dot_product
-            else:
-                visibility_score = -1  # Default low score if the center is at the origin
-            
-            # Calculate the distance to the face
-            distance = np.linalg.norm(center)
-            
             # Combine factors into a score
             # We prefer faces that are:
-            # 1. Larger
-            # 2. More facing the camera
+            # 1. More facing the Tiago
+            # 2. Larger
             # 3. Closer to the camera
-            score = (face_size_estimate * 0.5) + (visibility_score * 0.3) + (1.0 / (distance + 0.1) * 0.2)
-            
+            score = (face_size_estimate * 0.5) + (yaw * 1.5) + (1.0 / (distance + 0.1) * 0.2)    
             if score > best_score:
                 best_score = score
-                best_face = face
-        
+                best_face = transformed_face
+            
+        self.get_logger().info(f"Best face is: {best_face}")
         return best_face
 
 
