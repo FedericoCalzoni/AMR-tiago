@@ -15,19 +15,21 @@
   limitations under the License.
  -->
 <robot xmlns:xacro="http://ros.org/wiki/xacro">
-  <xacro:macro name="ros2_control_arm" params="name reduction:=1.0 offset" >
+  <xacro:macro name="ros2_control_arm" params="name reduction offset" >
     <joint name="${name}_joint">
       <command_interface name="position" />
       <command_interface name="velocity" />
       <command_interface name="effort" />
-      
 
-      <state_interface name="position" />
-      <state_interface name="velocity" />
+      <state_interface name="position">
+        <param name="initial_value">0.5</param>
+      </state_interface>
+      <state_interface name="velocity">
+      </state_interface>
       <state_interface name="effort" />
     </joint>
 
-<xacro:include filename="$(find tiago_description)/ros2_control/transmissions.urdf.xacro" /> 
+<xacro:include filename="$(find tiago_description)/ros2_control/transmissions.urdf.xacro" />
 <xacro:tiago_simple_transmission name="${name}" reduction="${reduction}" offset_value="${offset}" />
 
   </xacro:macro>
