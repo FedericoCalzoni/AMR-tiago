@@ -122,7 +122,7 @@
       <parent link="${name}_5_link" />
       <child link="${name}_6_link" />
       <origin xyz="0 0 ${reflect * 0.15}" rpy="${0.0 * deg_to_rad} ${-90.0 * deg_to_rad} ${-90.0 * deg_to_rad}" />
-      <axis xyz="0 0 1" />
+      <axis xyz="0 0 -1" />
       <limit lower="${-wrist_6_range * deg_to_rad}" upper="${wrist_6_range * deg_to_rad}" effort="${wrist_2_max_effort}" velocity="${wrist_2_max_vel}" />
       <dynamics friction="${wrist_friction}" damping="${wrist_damping}"/>
 

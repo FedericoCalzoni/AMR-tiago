@@ -31,7 +31,6 @@ def navigation_bringup(context, *args, **kwargs):
     actions = []
     is_public_sim = LaunchConfiguration("is_public_sim").perform(context)
     world_name = LaunchConfiguration("world_name").perform(context)
-    map_path = LaunchConfiguration("map_path").perform(context)
 
     tiago_2dnav = get_package_share_directory("tiago_2dnav")
     pmb2_maps = get_package_share_directory("pmb2_maps")
@@ -81,10 +80,8 @@ def navigation_bringup(context, *args, **kwargs):
                     "nav_bringup.launch.py",
                 )
             ),
-            launch_arguments={"map_path": map_path}.items(),
             condition=UnlessCondition(is_public_sim),
         )
-        
         
         rviz_bringup_launch = IncludeLaunchDescription(
             PythonLaunchDescriptionSource(
@@ -107,11 +104,9 @@ def generate_launch_description():
     """Launch Navigation common application Robot + Simulation."""
     declare_is_public_sim_arg = DeclareLaunchArgument(
         "is_public_sim",
-        default_value="true",
+        default_value="false",
         description="Whether or not you are using a public simulation",
     )
-
-    declare_map_path_arg = DeclareLaunchArgument("map_path", default_value="my_map")
 
     declare_world_name_arg = DeclareLaunchArgument(
         "world_name", default_value="",
@@ -124,7 +119,6 @@ def generate_launch_description():
     ld = LaunchDescription()
     ld.add_action(declare_is_public_sim_arg)
     ld.add_action(declare_world_name_arg)
-    ld.add_action(declare_map_path_arg)
     ld.add_action(navigation_bringup_launch)
 
     return ld

@@ -56,7 +56,10 @@ def get_resource_paths(packages_names):
 
 def generate_launch_description():
 
-    group_number_arg = DeclareLaunchArgument("group_number", default_value="1")
+    navigation_arg = DeclareLaunchArgument(
+        'navigation', default_value='false',
+        description='Specify if launching Navigation2'
+    )
 
     moveit_arg = DeclareLaunchArgument(
         'moveit', default_value='true',
@@ -66,8 +69,7 @@ def generate_launch_description():
     gazebo = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([os.path.join(
             get_package_share_directory('pal_gazebo_worlds'),
-            'launch'), '/pal_gazebo_exam.launch.py']),
-            launch_arguments={'group_number': LaunchConfiguration("group_number")}.items()
+            'launch'), '/pal_gazebo.launch.py']),
     )
 
     tiago_spawn = include_launch_py_description(
@@ -78,6 +80,16 @@ def generate_launch_description():
         'tiago_bringup', ['launch', 'tiago_bringup.launch.py'],
         launch_arguments={'use_sim_time': 'True'}.items())
 
+    navigation = include_launch_py_description(
+        'tiago_2dnav', ['launch', 'tiago_nav_bringup.launch.py'],
+        launch_arguments={
+            'use_sim_time': 'True',
+            'remappings_file': os.path.join(
+                get_package_share_directory('tiago_2dnav'),
+                'params',
+                'tiago_remappings_sim.yaml')
+        }.items(),
+        condition=IfCondition(LaunchConfiguration('navigation')))
 
     move_group = include_launch_py_description(
         'tiago_moveit_config', ['launch', 'move_group.launch.py'],
@@ -114,11 +126,12 @@ def generate_launch_description():
     # Using this prevents shared library from being found
     # ld.add_action(SetEnvironmentVariable('GAZEBO_RESOURCE_PATH', tiago_resource_path))
 
-    ld.add_action(group_number_arg)
-
     ld.add_action(gazebo)
     ld.add_action(tiago_spawn)
     ld.add_action(tiago_bringup)
+
+    ld.add_action(navigation_arg)
+    ld.add_action(navigation)
 
     ld.add_action(moveit_arg)
     ld.add_action(move_group)

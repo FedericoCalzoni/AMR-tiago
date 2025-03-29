@@ -29,9 +29,7 @@ from launch_pal.robot_utils import get_robot_name
 
 def loc_and_nav(context, *args, **kwargs):
     robot_name = LaunchConfiguration("robot_name").perform(context)
-
-    map_path = LaunchConfiguration("map_path").perform(context)
-
+    
     world_name = LaunchConfiguration("world_name").perform(context)
 
     
@@ -55,7 +53,12 @@ def loc_and_nav(context, *args, **kwargs):
         ),
         launch_arguments={
             "params_file": configured_params,
-            "map": os.path.join(map_path, "map.yaml"),
+            "map": os.path.join(
+                    "/home/student/tiago_ws/src/pmb2_navigation/pmb2_maps",
+                    "configurations",
+                    "eut_kitchen",
+                    "map.yaml",
+                ),
         }.items(),
         condition=UnlessCondition(LaunchConfiguration("slam")),
     )
@@ -103,7 +106,11 @@ def generate_launch_description():
         description="Whether to start the SLAM or the Map Localization",
     )
 
-    declare_map_cmd = DeclareLaunchArgument("map_path")
+    declare_map_yaml_cmd = DeclareLaunchArgument(
+        "map",
+        default_value=os.path.join(pmb2_maps_dir, "config", "map.yaml"),
+        description="Full path to map yaml file to load. Ignored if not slam",
+    )
 
     declare_rviz_arg = DeclareLaunchArgument(
         "rviz",
@@ -118,7 +125,7 @@ def generate_launch_description():
 
     ld.add_action(declare_slam_cmd)
     ld.add_action(get_robot_name())
-    ld.add_action(declare_map_cmd)
+    ld.add_action(declare_map_yaml_cmd)
     ld.add_action(declare_rviz_arg)
     ld.add_action(loc_and_nav_launch)
 

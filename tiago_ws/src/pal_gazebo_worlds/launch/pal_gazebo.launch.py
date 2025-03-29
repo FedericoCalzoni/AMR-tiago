@@ -35,7 +35,7 @@ def start_gzserver(context, *args, **kwargs):
     except Exception:
         pass
 
-    world_name = 'exam'
+    world_name = 'eut_kitchen'  #eut_kitchen
 
     world = ''
     if os.path.exists(os.path.join(priv_pkg_path, 'worlds', world_name + '.world')):
