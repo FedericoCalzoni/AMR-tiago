@@ -52,7 +52,7 @@ class BoxFaceNavigator(Node):
             cv2.arrowedLine(cv_image, origin, z_axis_end, (255, 0, 0), 2)
 
             self.image_saved = True
-            cv2.imwrite("camera_image.png", cv_image)
+            #cv2.imwrite("camera_image.png", cv_image)
 
     def from_mt_to_pixel(self, point):
         # Camera intrinsic parameters
