@@ -36,8 +36,8 @@ def main():
     # Create node for this example
     node = Node("example_tiago_pose")
 
-    position = [0.5, 0.0, 1.0]
-    quat_xyzw = [1.0, 0.0, 0.0, 0.0]
+    position = [0.0, 0.0, 0.0]
+    quat_xyzw = [0.0, 0.0, 0.0, 0.0]
     
     rot = kdl.Rotation.Quaternion(quat_xyzw[0], quat_xyzw[1], quat_xyzw[2], quat_xyzw[3])
     pose = kdl.Frame(rot, kdl.Vector(position[0], position[1], position[2]))
