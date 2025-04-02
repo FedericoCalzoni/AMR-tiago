@@ -215,4 +215,4 @@ source /opt/ros/humble/setup.bash
 source ~/AMR-tiago/ros2_ws/install/setup.bash
 source ~/AMR-tiago/tiago_ws/install/setup.bash
 source ~/AMR-tiago/exam_ws/install/setup.bash
-source ~/AMR-tiago/pymoveit2-4.1.1/install/local_setup.bash
+#source ~/AMR-tiago/tiago_ws/src/pymoveit2-4.1.1/install/local_setup.bash
