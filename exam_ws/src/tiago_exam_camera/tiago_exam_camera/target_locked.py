@@ -1,13 +1,10 @@
-import rclpy, cv2
+import rclpy, cv2, math, time
 import numpy as np
 from rclpy.node import Node
 from cv_bridge import CvBridge
 from sensor_msgs.msg import Image
 from sensor_msgs.msg import CameraInfo
 from sensor_msgs.msg import JointState
-from geometry_msgs.msg import Twist
-from rclpy.action import ActionClient
-from nav2_msgs.action import NavigateToPose
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped, TransformStamped
 from scipy.spatial.transform import Rotation as R
@@ -35,7 +32,12 @@ class ArucoCubeDetection(Node):
         self.current_position = [0.0, 0.0]  # Initialize head position
         self.target_ids = [63, 582]
         self.marker_size = 0.06
-        
+        # Camera parameters
+        self.camera_matrix = np.array([
+            [522.1910329546544, 0.0, 320.5],
+            [0.0, 522.1910329546544, 240.5],
+            [0.0, 0.0, 1.0]])
+        self.dist_coeffs = np.array([1.0e-08, 1.0e-08, 1.0e-08, 1.0e-08, 1.0e-08])
         self.get_logger().info('ArUco Detector Node initialized')
 
     def camera_info_callback(self, msg):
@@ -43,34 +45,104 @@ class ArucoCubeDetection(Node):
         
     def image_callback(self, msg):
         self.img = self.bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
-        
         gray = cv2.cvtColor(self.img, cv2.COLOR_BGR2GRAY)
         corners, ids, _ = cv2.aruco.detectMarkers(gray, self.aruco_dict, parameters=self.aruco_params)
         
         # red dot in the center of the image
         cv2.circle(self.img, (self.img.shape[1] // 2, self.img.shape[0] // 2), 2, (0, 0, 255), -1)
-
+        
+        # Initialize tracking memory if not present
+        if not hasattr(self, 'last_best_id_idx'):
+            self.last_best_id_idx = None
+            self.lost_track_count = 0
+            self.track_memory = 5  # Number of frames to remember previous detection
+        
         if ids is not None:
-            self.get_logger().info(f"Cubes locked, IDs: {ids}")
-            
-            for i, id in enumerate(ids):
-                if id[0] == self.target_ids[0]:  # ID 63
-                    corner = corners[i]
-                    cv2.aruco.drawDetectedMarkers(self.img, corners, ids)
-                    # Calculate the center of the marker
-                    center_x = int(corner[0][0][0] + corner[0][2][0]) // 2
-                    center_y = int(corner[0][0][1] + corner[0][2][1]) // 2
+            # Filter only markers with our target ID
+            target_indices = [i for i, id in enumerate(ids) if id[0] == self.target_ids[0]]
+            if target_indices:
+                best_dot_product = -1
+                current_best_id_idx = None
+                
+                # Process each target marker
+                for i in target_indices:
+                    # Get marker size in meters
+                    marker_size = self.marker_size
                     
-                    self.goal_found = True
-                    self.move_head(center_x, center_y)
+                    # Estimate pose
+                    rvec, tvec, _ = cv2.aruco.estimatePoseSingleMarkers(
+                        corners[i], marker_size, self.camera_matrix, self.dist_coeffs
+                    )
                     
-                    # cv2.circle(self.img, (center_x, center_y), 2, (255, 0, 0), -1)
+                    # Convert rotation vector to rotation matrix
+                    rot_matrix, _ = cv2.Rodrigues(rvec[0])
                     
-                    self.publish_marker_transform(corner, id[0], msg.header.stamp)
-        elif not self.goal_found:
-            self.rotate_head()
+                    # Extract Z-axis of the marker (normal vector)
+                    normal = rot_matrix[:, 2]
+                    
+                    # Camera y-axis in camera coordinates
+                    camera_y_axis = np.array([0, 1, 0])
+                    
+                    # Calculate dot product
+                    dot_product = np.abs(np.dot(normal, camera_y_axis))
+                    
+                    # Prioritize previously tracked marker if it's still visible and good enough
+                    if self.last_best_id_idx is not None and i == self.last_best_id_idx:
+                        if dot_product > best_dot_product * 1.2:  # 20% improvement threshold
+                            best_dot_product = dot_product
+                            current_best_id_idx = i
+                    elif dot_product > best_dot_product:
+                        best_dot_product = dot_product
+                        current_best_id_idx = i
+                
+                # Draw axes for visual debugging (optional)
+                for i in target_indices:
+                    rvec, tvec, _ = cv2.aruco.estimatePoseSingleMarkers(
+                        corners[i], self.marker_size, self.camera_matrix, self.dist_coeffs
+                    )
+                    # Draw smaller axis for all detected markers
+                    cv2.aruco.drawAxis(self.img, self.camera_matrix, self.dist_coeffs, rvec, tvec, self.marker_size/4)
+                
+                # Use the best marker - maintain original array format
+                best_id_idx = current_best_id_idx
+                self.last_best_id_idx = best_id_idx  # Update tracking memory
+                self.lost_track_count = 0  # Reset lost track counter
+                
+                # Highlight the best marker with a larger axis
+                rvec, tvec, _ = cv2.aruco.estimatePoseSingleMarkers(
+                    corners[best_id_idx], self.marker_size, self.camera_matrix, self.dist_coeffs
+                )
+                cv2.aruco.drawAxis(self.img, self.camera_matrix, self.dist_coeffs, rvec, tvec, self.marker_size/2)
+                
+                # Calculate the center of the marker
+                corner = corners[best_id_idx][0]
+                center_x = int((corner[0][0] + corner[2][0]) / 2)
+                center_y = int((corner[0][1] + corner[2][1]) / 2)
+                
+                self.goal_found = True
+                self.move_head(center_x, center_y)
+                self.publish_marker_transform(corners[best_id_idx], ids[best_id_idx][0], msg.header.stamp)
+                
+            elif self.last_best_id_idx is not None and self.lost_track_count < self.track_memory:
+                # No target detected but we were tracking something - maintain last position briefly
+                self.lost_track_count += 1
+                self.get_logger().warn(f"Temporarily lost track - holding position ({self.lost_track_count}/{self.track_memory})")
+                # Don't move the head here - maintain last position
+            elif not self.goal_found:
+                self.rotate_head()
+                self.last_best_id_idx = None  # Reset tracking memory
+            else:
+                self.last_best_id_idx = None  # Reset tracking memory
         else:
-            self.get_logger().warn("Target lost")
+            if self.last_best_id_idx is not None and self.lost_track_count < self.track_memory:
+                # No markers detected but we were tracking something - maintain last position briefly
+                self.lost_track_count += 1
+                self.get_logger().warn(f"Temporarily lost track - holding position ({self.lost_track_count}/{self.track_memory})")
+                # Don't move the head here - maintain last position
+            else:
+                self.last_best_id_idx = None  # Reset tracking memory
+                if not self.goal_found:
+                    self.rotate_head()
         
         cv2.imshow("Tiago's view", self.img)
         cv2.waitKey(1)
@@ -110,12 +182,20 @@ class ArucoCubeDetection(Node):
         error_x = center_x - img_center_x
         error_y = center_y - img_center_y
         
-        # PID controller for head movement
-        Kp = 0.001  # Proportional gain for head movement
-        Ki = 0.001  # Integral gain for head movement
-        Kd = 0.001  # Derivative gain for head movement
-        integral_limit = 100  # Limit for integral term to prevent wind-up
-
+        # Define threshold - stop moving if error is small enough
+        error_threshold = 10  # pixels
+        
+        # Check if error is within threshold
+        if abs(error_x) < error_threshold and abs(error_y) < error_threshold:
+            return  # Skip movement if close enough
+        
+        # Better tuned PID parameters
+        Kp = 0.003  # Increased for faster response
+        Ki = 0.0005  # Reduced to minimize overshoot
+        Kd = 0.002  # Increased for better damping
+        
+        integral_limit = 50  # Reduced to prevent excessive integral buildup
+        
         # Initialize integral and derivative errors if they don't exist
         if not hasattr(self, 'integral_error_x'):
             self.integral_error_x = 0.0
@@ -125,31 +205,59 @@ class ArucoCubeDetection(Node):
             self.previous_error_x = 0.0
         if not hasattr(self, 'previous_error_y'):
             self.previous_error_y = 0.0
+        if not hasattr(self, 'last_time'):
+            self.last_time = time.time()
         
-        # Update integral errors with limit to prevent wind-up
-        self.integral_error_x = max(min(self.integral_error_x + error_x, integral_limit), -integral_limit)
-        self.integral_error_y = max(min(self.integral_error_y + error_y, integral_limit), -integral_limit)
-
-        # Calculate derivative errors
-        derivative_error_x = error_x - self.previous_error_x
-        derivative_error_y = error_y - self.previous_error_y
-
-        # Calculate control signals
-        self.current_position[0] += -Kp * error_x - Ki * self.integral_error_x - Kd * derivative_error_x
-        self.current_position[1] += -Kp * error_y - Ki * self.integral_error_y - Kd * derivative_error_y
-
+        # Calculate time delta for better derivative calculation
+        current_time = time.time()
+        dt = current_time - self.last_time
+        self.last_time = current_time
+        
+        # Only update integral when error is small (anti-windup technique)
+        if abs(error_x) < 100:  # Only integrate when error is reasonable
+            self.integral_error_x = max(min(self.integral_error_x + error_x * dt, integral_limit), -integral_limit)
+        else:
+            self.integral_error_x = 0  # Reset integral when error is large
+        if abs(error_y) < 100:
+            self.integral_error_y = max(min(self.integral_error_y + error_y * dt, integral_limit), -integral_limit)
+        else:
+            self.integral_error_y = 0
+        # Calculate derivative errors with time scaling
+        if dt > 0:
+            derivative_error_x = (error_x - self.previous_error_x) / dt
+            derivative_error_y = (error_y - self.previous_error_y) / dt
+        else:
+            derivative_error_x = 0
+            derivative_error_y = 0
+        # Apply low-pass filter to derivative term to reduce noise
+        derivative_filter = 0.7  # Filter coefficient
+        if hasattr(self, 'filtered_derivative_x'):
+            self.filtered_derivative_x = derivative_filter * self.filtered_derivative_x + (1 - derivative_filter) * derivative_error_x
+            self.filtered_derivative_y = derivative_filter * self.filtered_derivative_y + (1 - derivative_filter) * derivative_error_y
+        else:
+            self.filtered_derivative_x = derivative_error_x
+            self.filtered_derivative_y = derivative_error_y
+        
+        dx = -Kp * error_x - Ki * self.integral_error_x - Kd * self.filtered_derivative_x
+        dy = -Kp * error_y - Ki * self.integral_error_y - Kd * self.filtered_derivative_y
+        # Limit maximum movement per iteration
+        max_movement = 0.05  # radians
+        dx = max(min(dx, max_movement), -max_movement)
+        dy = max(min(dy, max_movement), -max_movement)
+        # Update position
+        self.current_position[0] += dx
+        self.current_position[1] += dy
+        
         # Update previous errors
         self.previous_error_x = error_x
         self.previous_error_y = error_y
-
+        
+        # Create and publish trajectory
         point = JointTrajectoryPoint()
-        # self.get_logger().info(f"Error: {error_x}, {error_y}")
-        # self.get_logger().info(f"Move head: {self.current_position[0]}, {self.current_position[1]}")
         point.positions = self.current_position
-        point.time_from_start = rclpy.duration.Duration(seconds=1.0).to_msg()
-
+        point.time_from_start = rclpy.duration.Duration(seconds=0.2).to_msg()  # Reduced time for faster response
+        
         self.head_state.points = [point]
-        # self.get_logger().info(f"Head trajectory: {self.head_state}")
         self.head_publisher.publish(self.head_state)
         
     def publish_marker_transform(self, corner,  marker_id, timestamp):
