@@ -21,8 +21,6 @@ class ArucoCubeDetection(Node):
         self.image_subscription = self.create_subscription(Image, '/head_front_camera/rgb/image_raw', self.image_callback, 1)
         self.joint_state_subscription = self.create_subscription(JointState, '/joint_states', self.joint_state_callback, 1)
         self.tf_broadcaster = TransformBroadcaster(self)
-        self.action_client = ActionClient(self, NavigateToPose, 'navigate_to_pose')
-        self.twist_publisher = self.create_publisher(Twist, '/cmd_vel', 10)
         self.aruco_publisher = self.create_publisher(TransformStamped, '/aruco_single/transform', 10)
         self.head_state = JointTrajectory()
         self.head_state.joint_names = ['head_1_joint', 'head_2_joint']
@@ -44,7 +42,6 @@ class ArucoCubeDetection(Node):
         self.camera_info = msg
         
     def image_callback(self, msg):
-        
         self.img = self.bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
         
         gray = cv2.cvtColor(self.img, cv2.COLOR_BGR2GRAY)
@@ -71,7 +68,7 @@ class ArucoCubeDetection(Node):
                     
                     self.publish_marker_transform(corner, id[0], msg.header.stamp)
         elif not self.goal_found:
-            self.rotate_in_place()
+            self.rotate_head()
         else:
             self.get_logger().warn("Target lost")
         
@@ -96,30 +93,14 @@ class ArucoCubeDetection(Node):
             # If head joint names are not found in the message
             self.get_logger().warn('Head joint names not found in joint_states message')
 
-    def rotate_in_place(self):
-        twist = Twist()
-        twist.angular.z = -0.2
-        self.twist_publisher.publish(twist)
-
-    def move_toward_marker(self, center_x):
-        twist = Twist()
-        img_center_x = self.img.shape[1] // 2
-
-        # Rotate to align the marker with the center of the image
-        if center_x < img_center_x - 50:
-            twist.angular.z = 0.2
-        elif center_x > img_center_x + 50:
-            twist.angular.z = -0.2
-        else:
-            twist.angular.z = 0.0
-
-        # Move forward if the marker is centered
-        if abs(center_x - img_center_x) < 50:
-            twist.linear.x = 0.2
-        else:
-            twist.linear.x = 0.0
-
-        self.twist_publisher.publish(twist)
+    def rotate_head(self):
+        # Calculate control signals
+        self.current_position[1] += -0.3
+        point = JointTrajectoryPoint()
+        point.positions = self.current_position
+        point.time_from_start = rclpy.duration.Duration(seconds=1.0).to_msg()
+        self.head_state.points = [point]
+        self.head_publisher.publish(self.head_state)
 
     def move_head(self, center_x, center_y):
         img_center_x = self.img.shape[1] // 2
@@ -172,7 +153,6 @@ class ArucoCubeDetection(Node):
         self.head_publisher.publish(self.head_state)
         
     def publish_marker_transform(self, corner,  marker_id, timestamp):
-        
         if self.camera_info is None:
             self.get_logger().warn("Camera info not yet received. Skipping transform publishing.")
             return
