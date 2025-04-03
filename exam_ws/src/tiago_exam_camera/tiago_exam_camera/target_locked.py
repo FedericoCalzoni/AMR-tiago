@@ -32,6 +32,7 @@ class ArucoCubeDetection(Node):
         self.current_position = [0.0, 0.0]  # Initialize head position
         self.target_ids = [63, 582]
         self.marker_size = 0.06
+        self.i = 0
         # Camera parameters
         self.camera_matrix = np.array([
             [522.1910329546544, 0.0, 320.5],
@@ -55,7 +56,7 @@ class ArucoCubeDetection(Node):
         if not hasattr(self, 'last_best_id_idx'):
             self.last_best_id_idx = None
             self.lost_track_count = 0
-            self.track_memory = 5  # Number of frames to remember previous detection
+            self.track_memory = 15  # Number of frames to remember previous detection
         
         if ids is not None:
             # Filter only markers with our target ID
@@ -66,62 +67,43 @@ class ArucoCubeDetection(Node):
                 
                 # Process each target marker
                 for i in target_indices:
-                    # Get marker size in meters
                     marker_size = self.marker_size
-                    
-                    # Estimate pose
                     rvec, tvec, _ = cv2.aruco.estimatePoseSingleMarkers(
                         corners[i], marker_size, self.camera_matrix, self.dist_coeffs
                     )
-                    
-                    # Convert rotation vector to rotation matrix
                     rot_matrix, _ = cv2.Rodrigues(rvec[0])
-                    
-                    # Extract Z-axis of the marker (normal vector)
                     normal = rot_matrix[:, 2]
+                    not_x_axis = np.array([0, 1, 1])
+                    dot_product = np.abs(np.dot(normal, not_x_axis))
                     
-                    # Camera y-axis in camera coordinates
-                    camera_y_axis = np.array([0, 1, 0])
+                    # Imposta una soglia per il prodotto scalare
+                    min_dot_product_threshold = 1.0
                     
-                    # Calculate dot product
-                    dot_product = np.abs(np.dot(normal, camera_y_axis))
-                    
-                    # Prioritize previously tracked marker if it's still visible and good enough
-                    if self.last_best_id_idx is not None and i == self.last_best_id_idx:
-                        if dot_product > best_dot_product * 1.2:  # 20% improvement threshold
+                    if dot_product > min_dot_product_threshold:
+                        if self.last_best_id_idx is not None and i == self.last_best_id_idx:
+                            if dot_product > best_dot_product * 1.05:  # Ridotto anche questo threshold
+                                best_dot_product = dot_product
+                                current_best_id_idx = i
+                        elif dot_product > best_dot_product:
                             best_dot_product = dot_product
                             current_best_id_idx = i
-                    elif dot_product > best_dot_product:
-                        best_dot_product = dot_product
-                        current_best_id_idx = i
                 
-                # Draw axes for visual debugging (optional)
-                for i in target_indices:
-                    rvec, tvec, _ = cv2.aruco.estimatePoseSingleMarkers(
-                        corners[i], self.marker_size, self.camera_matrix, self.dist_coeffs
-                    )
-                    # Draw smaller axis for all detected markers
-                    cv2.aruco.drawAxis(self.img, self.camera_matrix, self.dist_coeffs, rvec, tvec, self.marker_size/4)
-                
-                # Use the best marker - maintain original array format
-                best_id_idx = current_best_id_idx
-                self.last_best_id_idx = best_id_idx  # Update tracking memory
-                self.lost_track_count = 0  # Reset lost track counter
-                
-                # Highlight the best marker with a larger axis
-                rvec, tvec, _ = cv2.aruco.estimatePoseSingleMarkers(
-                    corners[best_id_idx], self.marker_size, self.camera_matrix, self.dist_coeffs
-                )
-                cv2.aruco.drawAxis(self.img, self.camera_matrix, self.dist_coeffs, rvec, tvec, self.marker_size/2)
-                
-                # Calculate the center of the marker
-                corner = corners[best_id_idx][0]
-                center_x = int((corner[0][0] + corner[2][0]) / 2)
-                center_y = int((corner[0][1] + corner[2][1]) / 2)
-                
-                self.goal_found = True
-                self.move_head(center_x, center_y)
-                self.publish_marker_transform(corners[best_id_idx], ids[best_id_idx][0], msg.header.stamp)
+                        # Use the best marker - maintain original array format
+                        best_id_idx = current_best_id_idx
+                        self.last_best_id_idx = best_id_idx  # Update tracking memory
+                        self.lost_track_count = 0  # Reset lost track counter
+                        cv2.aruco.drawAxis(self.img, self.camera_matrix, self.dist_coeffs, rvec, tvec, self.marker_size/2)
+                        
+                        # Calculate the center of the marker
+                        corner = corners[best_id_idx][0]
+                        center_x = int((corner[0][0] + corner[2][0]) / 2)
+                        center_y = int((corner[0][1] + corner[2][1]) / 2)
+                        
+                        self.goal_found = True
+                        self.move_head(center_x, center_y)
+                        #if self.i == 0:
+                        self.publish_marker_transform(corners[best_id_idx], ids[best_id_idx][0], msg.header.stamp)
+                        self.i = 1
                 
             elif self.last_best_id_idx is not None and self.lost_track_count < self.track_memory:
                 # No target detected but we were tracking something - maintain last position briefly
@@ -183,7 +165,7 @@ class ArucoCubeDetection(Node):
         error_y = center_y - img_center_y
         
         # Define threshold - stop moving if error is small enough
-        error_threshold = 10  # pixels
+        error_threshold = 15  # pixels
         
         # Check if error is within threshold
         if abs(error_x) < error_threshold and abs(error_y) < error_threshold:
