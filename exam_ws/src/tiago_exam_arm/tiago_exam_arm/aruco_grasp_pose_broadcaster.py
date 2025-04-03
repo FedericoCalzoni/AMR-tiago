@@ -37,8 +37,8 @@ class ArucoGraspBroadcaster(Node):
         position = Vector(msg.transform.translation.x, msg.transform.translation.y, msg.transform.translation.z)
         orientation = Rotation.Quaternion(msg.transform.rotation.x, msg.transform.rotation.y, msg.transform.rotation.z, msg.transform.rotation.w) 
         self.frame_aruco = Frame(orientation, position)
-        self.get_logger().info(f"Received ArUco transform: pos={position}")
-        self.get_logger().info(f"quat=[{msg.transform.rotation.x} y={msg.transform.rotation.y}, z={msg.transform.rotation.z}, w={msg.transform.rotation.w}]")
+        # self.get_logger().info(f"Received ArUco transform: pos={position}")
+        # self.get_logger().info(f"quat=[{msg.transform.rotation.x} y={msg.transform.rotation.y}, z={msg.transform.rotation.z}, w={msg.transform.rotation.w}]")
 
     def timer_tf_base(self):
         try:
@@ -80,9 +80,13 @@ class ArucoGraspBroadcaster(Node):
 
         # Send the transformation
         self.tf_broadcaster.sendTransform(t)
+        self.get_logger().info(f"Published frame {tf_name}")
+        self.get_logger().info(f"pos=[{t.transform.translation.x}, {t.transform.translation.y}, {t.transform.translation.z}]")
+        self.get_logger().info(f"quat=[{t.transform.rotation.x}, {t.transform.rotation.y}, {t.transform.rotation.z}, {t.transform.rotation.w}]")
         
     def publish_frames(self):
         if self.t_base is None or self.frame_aruco is None:
+            self.get_logger().warn("Cannot publish frames: t_base or frame_aruco is None")
             return
 
         frame_robot = self.get_frame_kdl(self.t_base)
@@ -93,7 +97,7 @@ class ArucoGraspBroadcaster(Node):
         
         # Calculate pre-grasp approach frame (offset in front of the marker)
         # Creating an approach position 10cm in front of the marker
-        frame_approach = frame_target * Frame(Rotation(), Vector(0, 0, 0.1))
+        frame_approach = frame_target * Frame(Rotation(), Vector(0, 0, -0.1))
         # Rotate to have the gripper approach horizontally
         frame_approach.M.DoRotY(np.pi/2)
         self.publish_frame(frame_approach, self.frame_approach_name)

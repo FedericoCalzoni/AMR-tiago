@@ -20,9 +20,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         "console_scripts": [
-            "1_aruco_tf_subscriber = tiago_exam_arm.1_aruco_tf_subscriber:main",
-            "2_aruco_grasp_pose_broadcaster = tiago_exam_arm.2_aruco_grasp_pose_broadcaster:main",
-            "3_move_arm = tiago_exam_arm.3_move_arm:main",
+            "aruco_grasp_pose_broadcaster = tiago_exam_arm.aruco_grasp_pose_broadcaster:main",
+            "aruco_grab_controller = tiago_exam_arm.aruco_grab_controller:main",
         ],
     },
 )

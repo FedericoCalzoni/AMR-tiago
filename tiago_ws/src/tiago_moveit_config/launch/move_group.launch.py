@@ -89,7 +89,7 @@ def launch_setup(context, *args, **kwargs):
         output='screen',
         emulate_tty=True,
         parameters=[
-            use_sim_time,
+            {"use_sim_time": True},
             moveit_config.to_dict(),
             {'publish_robot_description_semantic': True}
         ],

@@ -105,11 +105,11 @@ rebuild-ws() {
     trash build install log  # Clean existing build artifacts
     colcon build || return 1  # Build the workspace
 
-    echo "Building pymoveit2..."
-    cd ~/AMR-tiago/pymoveit2-4.1.1/ || { echo "Error: pymoveit2 directory not found." >&2; return 1; }
-    trash build install log  # Clean existing build artifacts
-    rosdep install -y -r -i --rosdistro ${ROS_DISTRO} --from-paths .
-    colcon build --merge-install --symlink-install --cmake-args "-DCMAKE_BUILD_TYPE=Release"
+    # echo "Building pymoveit2..."
+    # cd ~/AMR-tiago/pymoveit2-4.1.1/ || { echo "Error: pymoveit2 directory not found." >&2; return 1; }
+    # trash build install log  # Clean existing build artifacts
+    # rosdep install -y -r -i --rosdistro ${ROS_DISTRO} --from-paths .
+    # colcon build --merge-install --symlink-install --cmake-args "-DCMAKE_BUILD_TYPE=Release"
     
     echo "All workspaces rebuilt!"
     cd ~  # Return to home directory
@@ -138,10 +138,10 @@ build-ws() {
     cd ~/AMR-tiago/tiago_ws || { echo "Error: tiago_ws directory not found." >&2; return 1; }
     colcon build || return 1  # Build the workspace
 
-    echo "Building pymoveit2..."
-    cd ~/AMR-tiago/pymoveit2-4.1.1/ || { echo "Error: pymoveit2 directory not found." >&2; return 1; }
-    rosdep install -y -r -i --rosdistro ${ROS_DISTRO} --from-paths .
-    colcon build --merge-install --symlink-install --cmake-args "-DCMAKE_BUILD_TYPE=Release"
+    # echo "Building pymoveit2..."
+    # cd ~/AMR-tiago/pymoveit2-4.1.1/ || { echo "Error: pymoveit2 directory not found." >&2; return 1; }
+    # rosdep install -y -r -i --rosdistro ${ROS_DISTRO} --from-paths .
+    # colcon build --merge-install --symlink-install --cmake-args "-DCMAKE_BUILD_TYPE=Release"
     
     echo "All workspaces built!"
     cd ~  # Return to home directory
@@ -178,8 +178,8 @@ alias run-navigate-to-pose='ros2 run tiago_exam_navigation navigate_to_pose'
 alias run-target-locked='ros2 run tiago_exam_camera target_locked'
 alias run-eyes='ros2 run tiago_exam_camera image_sub'
 alias run-head-joystick='ros2 run tiago_exam_navigation move_head'
-alias run-grasp-pose='ros2 run tiago_exam_arm 2_aruco_grasp_pose_broadcaster'
-alias run-move-arm='ros2 run tiago_exam_arm 3_move_arm'
+alias run-grasp-pose='ros2 run tiago_exam_arm aruco_grasp_pose_broadcaster'
+alias run-grab-controller='ros2 run tiago_exam_arm aruco_grab_controller'
 
 # Add an "alert" alias for long running commands.  Use like so:
 #   sleep 10; alert
@@ -215,4 +215,4 @@ source /opt/ros/humble/setup.bash
 source ~/AMR-tiago/ros2_ws/install/setup.bash
 source ~/AMR-tiago/tiago_ws/install/setup.bash
 source ~/AMR-tiago/exam_ws/install/setup.bash
-source ~/AMR-tiago/pymoveit2-4.1.1/install/local_setup.bash
+#source ~/AMR-tiago/pymoveit2-4.1.1/install/local_setup.bash

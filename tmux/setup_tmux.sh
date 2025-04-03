@@ -60,7 +60,6 @@ party_mode(){
 
     # pane 4
     tmux send-keys C-l
-    tmux send-keys "ros2 "
 
     # pane 2
     tmux select-pane -t 1
@@ -91,7 +90,6 @@ arm(){
 
     # pane 6
     tmux send-keys C-l
-    tmux send-keys "ros2 "
 
     # pane 2
     tmux select-pane -t 1
@@ -107,7 +105,7 @@ arm(){
     # pane 4
     tmux split-window -h -p 66
     tmux send-keys C-l
-    tmux send-keys "run-move-arm"
+    tmux send-keys "run-grab-controller"
 
     # pane 5
     tmux split-window -h -p 50  # Split horizontally
