@@ -91,7 +91,7 @@ arm(){
 
     # pane 6
     tmux send-keys C-l
-    tmux send-keys "ros2 "
+    tmux send-keys "run-aruco-grab-controller "
 
     # pane 2
     tmux select-pane -t 1

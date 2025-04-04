@@ -5,6 +5,7 @@ from rclpy.node import Node
 from pymoveit2 import MoveIt2
 from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
+import PyKDL as kdl
 
 class TiagoArucoGrasp(Node):
 
@@ -39,7 +40,7 @@ class TiagoArucoGrasp(Node):
             node=self,
             joint_names=JOINT_NAMES,
             base_link_name=self.robot_base_frame,
-            end_effector_name="gripper_grasping_frame",
+            end_effector_name="arm_tool_link",
             group_name="arm_torso",
             callback_group=callback_group,
         )
@@ -50,7 +51,7 @@ class TiagoArucoGrasp(Node):
         executor.add_node(self)
         executor_thread = Thread(target=executor.spin, daemon=True, args=())
         executor_thread.start()
-        self.create_rate(10).sleep()
+        self.create_rate(1.0).sleep()
 
         self.move_to_pose()
 
@@ -59,17 +60,25 @@ class TiagoArucoGrasp(Node):
         t_target = self.tf_buffer.lookup_transform(self.robot_base_frame, self.target_frame, rclpy.time.Time(), rclpy.duration.Duration(seconds=2))
         if t_target is not None:
 
-            pos = [t_target.transform.translation.x, t_target.transform.translation.y, t_target.transform.translation.z]
-            quat = [t_target.transform.rotation.x,
-                    t_target.transform.rotation.y,
-                    t_target.transform.rotation.z,
-                    t_target.transform.rotation.w]
+            # pos = [t_target.transform.translation.x, t_target.transform.translation.y, t_target.transform.translation.z]
+            # quat = [t_target.transform.rotation.x,
+            #         t_target.transform.rotation.y,
+            #         t_target.transform.rotation.z,
+            #         t_target.transform.rotation.w]
+            
+            pos = [0.020364, 0.0353399, 1.51859]
+            quat = [-0.4154509943135347, 0.8572148953977015, -0.2783547560378185, -0.12288907283940999]
+            
+            # rot = kdl.Rotation.Quaternion(quat_xyzw[0], quat_xyzw[1], quat_xyzw[2], quat_xyzw[3])
+            # pose = kdl.Frame(rot, kdl.Vector(pos[0], pos[1], pos[2]))
+            
+            # quat = pose.M.GetQuaternion()
             
             # Move to pose
-            self.moveit2.move_to_pose(position=pos, quat_xyzw=quat)
+            self.max_velocity = 1.0
+            self.max_acceleration = 1.0
+            self.moveit2.move_to_pose(position=pos, quat_xyzw=quat, cartesian=True)
             self.moveit2.wait_until_executed()
-
-
 
 
 def main(args=None):

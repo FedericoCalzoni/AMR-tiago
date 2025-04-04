@@ -52,7 +52,7 @@ class GripperCommand:
         # Create subscriber for current joint states
         self._node.create_subscription(
             msg_type=JointState,
-            topic="joint_states",
+            topic="/joint_states",
             callback=self.__joint_state_callback,
             qos_profile=QoSProfile(
                 durability=QoSDurabilityPolicy.VOLATILE,

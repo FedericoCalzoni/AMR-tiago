@@ -180,6 +180,7 @@ alias run-eyes='ros2 run tiago_exam_camera image_sub'
 alias run-head-joystick='ros2 run tiago_exam_navigation move_head'
 alias run-grasp-pose='ros2 run tiago_exam_arm 2_aruco_grasp_pose_broadcaster'
 alias run-move-arm='ros2 run tiago_exam_arm 3_move_arm'
+alias run-aruco-grab-controller='ros2 run tiago_exam_arm aruco_grab_controller'
 
 # Add an "alert" alias for long running commands.  Use like so:
 #   sleep 10; alert

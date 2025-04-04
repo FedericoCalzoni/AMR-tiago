@@ -161,7 +161,7 @@ class MoveIt2:
         # Create subscriber for current joint states
         self._node.create_subscription(
             msg_type=JointState,
-            topic="joint_states",
+            topic="/joint_states",
             callback=self.__joint_state_callback,
             qos_profile=QoSProfile(
                 durability=QoSDurabilityPolicy.VOLATILE,
@@ -172,6 +172,13 @@ class MoveIt2:
             callback_group=self._callback_group,
         )
 
+        # self._node.create_subscription(
+        #     JointState,
+        #     '/joint_states',
+        #     self.__joint_state_callback,
+        #     10
+        # )
+        
         # Create action client for move action
         self.__move_action_client = ActionClient(
             node=self._node,
@@ -635,6 +642,7 @@ class MoveIt2:
                 tolerance=tolerance_joint_position,
                 weight=weight_joint_position,
             )
+            
         # Define starting state for the plan (default to the current state)
         while start_joint_state is None:
             self._node._logger.warn(message="Joint states are not available yet!")
@@ -643,6 +651,7 @@ class MoveIt2:
                 break
             else:
                 rclpy.spin_once(self._node, timeout_sec=1.0)
+                
         self._node._logger.info(message="Joint states are available now")
 
         # Plan trajectory asynchronously by service call
@@ -1952,10 +1961,11 @@ class MoveIt2:
         return resp.success
 
     def __joint_state_callback(self, msg: JointState):
-        # Update only if all relevant joints are included in the message
-        for joint_name in self.joint_names:
-            if not joint_name in msg.name:
-                return
+        
+        # # Update only if all relevant joints are included in the message
+        # for joint_name in self.joint_names:
+        #     if not joint_name in msg.name:
+        #         return
 
         self.__joint_state_mutex.acquire()
         self.__joint_state = msg
