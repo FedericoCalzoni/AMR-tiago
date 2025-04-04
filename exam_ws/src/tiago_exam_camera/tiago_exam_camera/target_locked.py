@@ -32,7 +32,6 @@ class ArucoCubeDetection(Node):
         self.current_position = [0.0, 0.0]  # Initialize head position
         self.target_ids = [63, 582]
         self.marker_size = 0.06
-        self.i = 0
         # Camera parameters
         self.camera_matrix = np.array([
             [522.1910329546544, 0.0, 320.5],
@@ -62,10 +61,9 @@ class ArucoCubeDetection(Node):
             # Filter only markers with our target ID
             target_indices = [i for i, id in enumerate(ids) if id[0] == self.target_ids[0]]
             if target_indices:
-                best_dot_product = -1
+                lowest_x_normal = float('inf')
                 current_best_id_idx = None
-                
-                # Process each target marker
+
                 for i in target_indices:
                     marker_size = self.marker_size
                     rvec, tvec, _ = cv2.aruco.estimatePoseSingleMarkers(
@@ -73,56 +71,45 @@ class ArucoCubeDetection(Node):
                     )
                     rot_matrix, _ = cv2.Rodrigues(rvec[0])
                     normal = rot_matrix[:, 2]
-                    not_x_axis = np.array([0, 1, 1])
-                    dot_product = np.abs(np.dot(normal, not_x_axis))
-                    
-                    # Imposta una soglia per il prodotto scalare
-                    min_dot_product_threshold = 1.0
-                    
-                    if dot_product > min_dot_product_threshold:
+                    x_component = abs(normal[0])
+                    max_x_component_threshold = 0.3
+                    if x_component < max_x_component_threshold:
                         if self.last_best_id_idx is not None and i == self.last_best_id_idx:
-                            if dot_product > best_dot_product * 1.05:  # Ridotto anche questo threshold
-                                best_dot_product = dot_product
+                            # Only switch if new marker has significantly lower x component
+                            if x_component < lowest_x_normal * 0.95:
+                                lowest_x_normal = x_component
                                 current_best_id_idx = i
-                        elif dot_product > best_dot_product:
-                            best_dot_product = dot_product
+                        elif x_component < lowest_x_normal:
+                            lowest_x_normal = x_component
                             current_best_id_idx = i
-                
-                        # Use the best marker - maintain original array format
+                    if current_best_id_idx is not None:
                         best_id_idx = current_best_id_idx
                         self.last_best_id_idx = best_id_idx  # Update tracking memory
                         self.lost_track_count = 0  # Reset lost track counter
-                        cv2.aruco.drawAxis(self.img, self.camera_matrix, self.dist_coeffs, rvec, tvec, self.marker_size/2)
-                        
-                        # Calculate the center of the marker
+                        cv2.aruco.drawAxis(self.img, self.camera_matrix, self.dist_coeffs, 
+                                        rvec, tvec, self.marker_size/2)
                         corner = corners[best_id_idx][0]
                         center_x = int((corner[0][0] + corner[2][0]) / 2)
                         center_y = int((corner[0][1] + corner[2][1]) / 2)
                         
                         self.goal_found = True
                         self.move_head(center_x, center_y)
-                        #if self.i == 0:
                         self.publish_marker_transform(corners[best_id_idx], ids[best_id_idx][0], msg.header.stamp)
-                        self.i = 1
                 
             elif self.last_best_id_idx is not None and self.lost_track_count < self.track_memory:
-                # No target detected but we were tracking something - maintain last position briefly
                 self.lost_track_count += 1
                 self.get_logger().warn(f"Temporarily lost track - holding position ({self.lost_track_count}/{self.track_memory})")
-                # Don't move the head here - maintain last position
             elif not self.goal_found:
                 self.rotate_head()
-                self.last_best_id_idx = None  # Reset tracking memory
+                self.last_best_id_idx = None
             else:
-                self.last_best_id_idx = None  # Reset tracking memory
+                self.last_best_id_idx = None 
         else:
             if self.last_best_id_idx is not None and self.lost_track_count < self.track_memory:
-                # No markers detected but we were tracking something - maintain last position briefly
                 self.lost_track_count += 1
                 self.get_logger().warn(f"Temporarily lost track - holding position ({self.lost_track_count}/{self.track_memory})")
-                # Don't move the head here - maintain last position
             else:
-                self.last_best_id_idx = None  # Reset tracking memory
+                self.last_best_id_idx = None 
                 if not self.goal_found:
                     self.rotate_head()
         
@@ -130,7 +117,6 @@ class ArucoCubeDetection(Node):
         cv2.waitKey(1)
         
     def joint_state_callback(self, msg):
-        # Extract head joint positions from joint states message
         try:
             head_1_index = msg.name.index('head_1_joint')
             head_2_index = msg.name.index('head_2_joint')
