@@ -66,12 +66,16 @@ class ArucoGraspBroadcaster(Node):
         t.header.frame_id = self.robot_base_frame
         t.child_frame_id = frame_name
 
+        # Apply 180 degree rotation about the x-axis
+        rotation_180_x = Rotation.RPY(np.pi, 0, 0)
+        rotated_frame = frame * Frame(rotation_180_x)
+
         # position
-        t.transform.translation.x = frame.p.x()
-        t.transform.translation.y = frame.p.y()
-        t.transform.translation.z = frame.p.z()
+        t.transform.translation.x = rotated_frame.p.x()
+        t.transform.translation.y = rotated_frame.p.y()
+        t.transform.translation.z = rotated_frame.p.z()
                 
-        quat = frame.M.GetQuaternion()
+        quat = rotated_frame.M.GetQuaternion()
         quat = np.array(quat) / np.linalg.norm(quat)
         t.transform.rotation.x = quat[0]
         t.transform.rotation.y = quat[1]
@@ -93,7 +97,7 @@ class ArucoGraspBroadcaster(Node):
         
         # Calculate pre-grasp approach frame (offset in front of the marker)
         # Creating an approach position 10cm in front of the marker
-        frame_approach = frame_target * Frame(Rotation(), Vector(0, 0, 0.5))
+        frame_approach = frame_target * Frame(Rotation(), Vector(0, 0, 0.4))
         # Rotate to have the gripper approach horizontally
         frame_approach.M.DoRotY(np.pi/2)
         self.publish_frame(frame_approach, self.frame_approach_name)

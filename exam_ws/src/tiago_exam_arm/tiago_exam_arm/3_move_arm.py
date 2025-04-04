@@ -52,7 +52,10 @@ class TiagoArucoGrasp(Node):
             group_name="arm_torso",
             callback_group=callback_group,
         )
-        self.moveit2.planner_id = "RRTConnectkConfigDefault"
+        # self.moveit2.planner_id = "RRTConnectkConfigDefault"
+        # self.moveit2.planner_id = "PRMstarkConfigDefault"
+        self.moveit2.planner_id = "TRRTkConfigDefault"
+        
         # self.moveit2.set_goal_position_tolerance(0.01)
         # self.moveit2.set_goal_orientation_tolerance(0.01)
 
@@ -101,16 +104,11 @@ class TiagoArucoGrasp(Node):
             pose_msg.pose.orientation.w = quat[3]
 
             self.pose_pub.publish(pose_msg)
-            
-            # rot = kdl.Rotation.Quaternion(quat_xyzw[0], quat_xyzw[1], quat_xyzw[2], quat_xyzw[3])
-            # pose = kdl.Frame(rot, kdl.Vector(pos[0], pos[1], pos[2]))
-            
-            # quat = pose.M.GetQuaternion()
-            
+
             # Move to pose
             self.max_velocity = 0.3
             self.max_acceleration = 0.3
-            self.moveit2.move_to_pose(position=pos, quat_xyzw=quat, cartesian=True)
+            self.moveit2.move_to_pose(position=pos, quat_xyzw=quat, cartesian=False)
             self.moveit2.wait_until_executed()
             
             # After movement
