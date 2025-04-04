@@ -38,7 +38,7 @@ class ArucoGraspBroadcaster(Node):
         orientation = Rotation.Quaternion(msg.transform.rotation.x, msg.transform.rotation.y, msg.transform.rotation.z, msg.transform.rotation.w) 
         self.frame_aruco = Frame(orientation, position)
         self.get_logger().info(f"Received ArUco transform: pos={position}")
-        self.get_logger().info(f"quat=[{msg.transform.rotation.x} y={msg.transform.rotation.y}, z={msg.transform.rotation.z}, w={msg.transform.rotation.w}]")
+        self.get_logger().info(f"quat=[x={msg.transform.rotation.x}, y={msg.transform.rotation.y}, z={msg.transform.rotation.z}, w={msg.transform.rotation.w}]")
 
     def timer_tf_base(self):
         try:
@@ -58,19 +58,19 @@ class ArucoGraspBroadcaster(Node):
         return frame
 
 
-    def publish_frame(self, frame, tf_name):
+    def publish_frame(self, frame, frame_name):
 
         t = TransformStamped()
 
         t.header.stamp = self.get_clock().now().to_msg()
         t.header.frame_id = self.robot_base_frame
-        t.child_frame_id = tf_name
+        t.child_frame_id = frame_name
 
         # position
         t.transform.translation.x = frame.p.x()
         t.transform.translation.y = frame.p.y()
         t.transform.translation.z = frame.p.z()
-        
+                
         quat = frame.M.GetQuaternion()
         quat = np.array(quat) / np.linalg.norm(quat)
         t.transform.rotation.x = quat[0]
@@ -93,14 +93,14 @@ class ArucoGraspBroadcaster(Node):
         
         # Calculate pre-grasp approach frame (offset in front of the marker)
         # Creating an approach position 10cm in front of the marker
-        frame_approach = frame_target * Frame(Rotation(), Vector(0, 0, 0.1))
+        frame_approach = frame_target * Frame(Rotation(), Vector(0, 0, 0.5))
         # Rotate to have the gripper approach horizontally
         frame_approach.M.DoRotY(np.pi/2)
         self.publish_frame(frame_approach, self.frame_approach_name)
         
         # Calculate the final grasp frame
         # This is closer to the marker than the approach frame
-        frame_grasp = frame_target * Frame(Rotation(), Vector(0, 0, 0.05))
+        frame_grasp = frame_target * Frame(Rotation(), Vector(0, 0, 0.2))
         frame_grasp.M.DoRotY(np.pi/2)
         self.publish_frame(frame_grasp, self.frame_grasp_name)
 

@@ -59,7 +59,7 @@ class ArucoCubeDetection(Node):
         
         if ids is not None:
             # Filter only markers with our target ID
-            target_indices = [i for i, id in enumerate(ids) if id[0] == self.target_ids[0]]
+            target_indices = [i for i, id in enumerate(ids) if id[0] == self.target_ids[1]]
             if target_indices:
                 lowest_x_normal = float('inf')
                 current_best_id_idx = None
