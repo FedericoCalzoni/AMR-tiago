@@ -7,6 +7,7 @@ import rclpy
 from rclpy.node import Node
 from nav2_msgs.action import NavigateToPose
 from rclpy.action import ActionClient
+# $ source install/setup.bash
 from tiago_interfaces.msg import BoxInfo, FaceInfo 
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
@@ -200,8 +201,6 @@ class BoxFaceNavigator(Node):
                     }
                     
                     self.get_logger().info(f'Transformed face center from {face_info["center"]} to {new_center}')
-                    #self.get_logger().info(f'Transformed face normal from {face_info["normal"]} to {new_normal}')
-                    
                     return transformed_face_info
                 else:
                     self.get_logger().warn('Cannot transform directly from optical frame to map')
@@ -259,7 +258,6 @@ class BoxFaceNavigator(Node):
                     'plane_coefficients': face_info['plane_coefficients'],
                     'points': face_info['points']
                 }
-                
                 return transformed_face_info
         
         except Exception as e:
