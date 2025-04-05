@@ -141,6 +141,13 @@ class ArucoCubeDetection(Node):
         point.time_from_start = rclpy.duration.Duration(seconds=1.0).to_msg()
         self.head_state.points = [point]
         self.head_publisher.publish(self.head_state)
+        if self.current_position[1] < -1:
+            self.current_position[0] += -0.3
+            point = JointTrajectoryPoint()
+            point.positions = self.current_position
+            point.time_from_start = rclpy.duration.Duration(seconds=1.0).to_msg()
+            self.head_state.points = [point]
+            self.head_publisher.publish(self.head_state)
 
     def move_head(self, center_x, center_y):
         img_center_x = self.img.shape[1] // 2
@@ -206,8 +213,8 @@ class ArucoCubeDetection(Node):
             self.filtered_derivative_x = derivative_error_x
             self.filtered_derivative_y = derivative_error_y
         
-        dx = -Kp * error_x - Ki * self.integral_error_x - Kd * self.filtered_derivative_x
-        dy = -Kp * error_y - Ki * self.integral_error_y - Kd * self.filtered_derivative_y
+        dx = -Kp * error_x - Ki * self.integral_error_x 
+        dy = -Kp * error_y - Ki * self.integral_error_y 
         # Limit maximum movement per iteration
         max_movement = 0.05  # radians
         dx = max(min(dx, max_movement), -max_movement)
