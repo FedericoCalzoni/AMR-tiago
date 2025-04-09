@@ -181,6 +181,13 @@ alias run-head-joystick='ros2 run tiago_exam_navigation move_head'
 alias run-grasp-pose='ros2 run tiago_exam_arm 2_aruco_grasp_pose_broadcaster'
 alias run-move-arm='ros2 run tiago_exam_arm 3_move_arm'
 alias run-aruco-grab-controller='ros2 run tiago_exam_arm aruco_grab_controller'
+alias run-nav-to-box='ros2 run tiago_exam_navigation navigate_to_box'
+#alias run-pick-and-place= 'ros2 run tiago_exam_arm 4_pick_and_place'
+
+# Alias for DAS
+alias das-start-docker='docker start das_container'
+alias das-stop-docker='docker stop das_container'
+alias das-exe-docker='docker exec -it das_container /bin/bash' 
 
 # Add an "alert" alias for long running commands.  Use like so:
 #   sleep 10; alert

@@ -28,6 +28,7 @@ setup(
             "basic_gripper = tiago_exam_arm.basic_gripper:main",
             "basic_joints = tiago_exam_arm.basic_joints:main",
             "basic_pose = tiago_exam_arm.basic_pose:main",
+            "publish_aruco_cube = tiago_exam_arm.publish_aruco_cube:main", 
             "tf_broadcaster = tiago_exam_arm.tf_broadcaster:main",
         ],
     },

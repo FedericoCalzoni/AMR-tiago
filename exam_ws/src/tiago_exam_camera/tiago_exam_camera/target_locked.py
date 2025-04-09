@@ -31,7 +31,7 @@ class ArucoCubeDetection(Node):
         self.camera_info = None
         self.current_position = [0.0, 0.0]  # Initialize head position
         self.target_ids = [63, 582]
-        self.marker_size = 0.06
+        self.marker_size = 0.07
         # Camera parameters
         self.camera_matrix = np.array([
             [522.1910329546544, 0.0, 320.5],
