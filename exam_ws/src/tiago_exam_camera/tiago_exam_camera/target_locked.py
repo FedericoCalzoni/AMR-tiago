@@ -32,13 +32,13 @@ class ArucoCubeDetection(Node):
         self.current_position = [0.0, 0.0]  # Initialize head position
         self.target_ids = [63, 582]
         self.marker_size = 0.04667
+        self.get_logger().info('ArUco Detector Node initialized')
         # Camera parameters
         self.camera_matrix = np.array([
             [522.1910329546544, 0.0, 320.5],
             [0.0, 522.1910329546544, 240.5],
             [0.0, 0.0, 1.0]])
         self.dist_coeffs = np.array([1.0e-08, 1.0e-08, 1.0e-08, 1.0e-08, 1.0e-08])
-        self.get_logger().info('ArUco Detector Node initialized')
 
     def camera_info_callback(self, msg):
         self.camera_info = msg
@@ -94,7 +94,7 @@ class ArucoCubeDetection(Node):
                         
                         self.goal_found = True
                         self.move_head(center_x, center_y)
-                        self.publish_marker_transform(corners[best_id_idx], ids[best_id_idx][0], msg.header.stamp)
+                        #self.publish_marker_transform(corners[best_id_idx], ids[best_id_idx][0], msg.header.stamp)
                 
             elif self.last_best_id_idx is not None and self.lost_track_count < self.track_memory:
                 self.lost_track_count += 1
@@ -281,7 +281,7 @@ class ArucoCubeDetection(Node):
         
         camera_matrix = np.array(self.camera_info.k).reshape(3, 3)
         dist_coeffs = np.array(self.camera_info.d)
-        
+
         # Get the marker pose relative to the camera
         self.get_logger().info(f"Corner: {corner}")
         rvecs, tvecs, _ = cv2.aruco.estimatePoseSingleMarkers(corner, 
@@ -292,7 +292,7 @@ class ArucoCubeDetection(Node):
         # Create transform message
         transform_msg = TransformStamped()
         transform_msg.header.stamp = self.get_clock().now().to_msg()
-        transform_msg.header.frame_id = 'head_front_camera_rgb_optical_frame'
+        transform_msg.header.frame_id = 'head_front_camera_optical_frame'
         transform_msg.child_frame_id = f'aruco_marker_{marker_id}'
         
         # Set translation

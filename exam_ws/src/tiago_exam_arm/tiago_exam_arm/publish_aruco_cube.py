@@ -36,9 +36,10 @@ class ShapePublisher(Node):
         self.tf_broadcaster = TransformBroadcaster(self)
         
         # Define shape properties based on input string
-        if self.input_string == 'aruco':
+        if self.input_string == 'aruco1':
             self.center_color = ColorRGBA(r=0.0, g=0.0, b=1.0, a=1.0)   # Blue
             self.edges_color = ColorRGBA(r=0.0, g=1.0, b=0.0, a=1.0)    # Green
+            self.shape_color = ColorRGBA(r=0.0, g=0.8, b=0.2, a=0.6)
             # Shape properties (world coordinates)
             self.world_x = 1.15  # World X coordinate for the cube 
             self.world_y = -4.499995 # World Y coordinate for the cube 
@@ -47,11 +48,26 @@ class ShapePublisher(Node):
             self.y_length = 0.06  # cube edge length
             self.z_length = 0.06  # cube edge length
             # Create publishers
-            self.corners_pub = self.create_publisher(MarkerArray, '/Aruco_corners', 10)
-            self.center_pub = self.create_publisher(PointStamped, '/Aruco_center', 10)
+            self.corners_pub = self.create_publisher(MarkerArray, '/Aruco582_corners', 10)
+            self.center_pub = self.create_publisher(PointStamped, '/Aruco582_center', 10)
+        elif self.input_string == 'aruco2':
+            self.center_color = ColorRGBA(r=0.0, g=1.0, b=1.0, a=1.0)   # Blue
+            self.edges_color = ColorRGBA(r=1.0, g=0.0, b=0.0, a=1.0)    # Green
+            self.shape_color = ColorRGBA(r=0.8, g=0.2, b=0.0, a=0.6)  # Semi-transparent Red
+            # Shape properties (world coordinates)
+            self.world_x = 1.2  # World X coordinate for the cube 
+            self.world_y = -4.649995 # World Y coordinate for the cube 
+            self.world_z = 0.333792   # World Z coordinate for the cube
+            self.x_length = 0.06  # cube edge length 
+            self.y_length = 0.06  # cube edge length
+            self.z_length = 0.06  # cube edge length
+            # Create publishers
+            self.corners_pub = self.create_publisher(MarkerArray, '/Aruco63_corners', 10)
+            self.center_pub = self.create_publisher(PointStamped, '/Aruco63_center', 10)
         else:
             self.edges_color = ColorRGBA(r=0.0, g=0.0, b=1.0, a=1.0)    # Blue
             self.center_color = ColorRGBA(r=0.0, g=1.0, b=0.0, a=1.0)   # Green
+            self.shape_color = ColorRGBA(r=0.2, g=0.5, b=0.7, a=0.6)  # Semi-transparent
             # Shape properties (world coordinates)
             self.world_x = 1.2  # World X coordinate for the parallelepiped
             self.world_y = -4.5 # World Y coordinate for the parallelepiped
@@ -168,7 +184,7 @@ class ShapePublisher(Node):
         shape_marker.scale.z = self.z_length
         
         # Set color (semi-transparent)
-        shape_color = ColorRGBA(r=0.2, g=0.5, b=0.7, a=0.6)
+        shape_color = self.shape_color
         shape_marker.color = shape_color
         
         marker_array.markers.append(shape_marker)
