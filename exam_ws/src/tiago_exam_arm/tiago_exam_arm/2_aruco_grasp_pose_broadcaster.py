@@ -107,8 +107,8 @@ class ArucoGraspBroadcaster(Node):
         t.child_frame_id = frame_name
         
         # Apply 180 degree rotation about the x-axis
-        rotation_180_x = Rotation.RPY(np.pi, 0, 0)
-        frame = frame * Frame(rotation_180_x)
+        rotation_90_x = Rotation.RPY(-np.pi/2, 0, 0)
+        frame = frame * Frame(rotation_90_x)
         
         # position
         t.transform.translation.x = frame.p.x()
