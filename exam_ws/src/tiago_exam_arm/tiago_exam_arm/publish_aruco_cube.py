@@ -42,10 +42,10 @@ class ShapePublisher(Node):
             # Shape properties (world coordinates)
             self.world_x = 1.15  # World X coordinate for the cube 
             self.world_y = -4.499995 # World Y coordinate for the cube 
-            self.world_z = 0.333783   # World Z coordinate for the cube
-            self.x_length = 0.07  # cube edge length 
-            self.y_length = 0.07  # cube edge length
-            self.z_length = 0.07  # cube edge length
+            self.world_z = 0.333792   # World Z coordinate for the cube
+            self.x_length = 0.06  # cube edge length 
+            self.y_length = 0.06  # cube edge length
+            self.z_length = 0.06  # cube edge length
             # Create publishers
             self.corners_pub = self.create_publisher(MarkerArray, '/Aruco_corners', 10)
             self.center_pub = self.create_publisher(PointStamped, '/Aruco_center', 10)

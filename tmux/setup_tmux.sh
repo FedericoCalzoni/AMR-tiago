@@ -97,7 +97,7 @@ arm(){
     tmux select-pane -t 1
     tmux split-window -h -p 80  # Split horizontally
     tmux send-keys C-l
-    tmux send-keys "run-head-joystick"
+    tmux send-keys "ros2 run tiago_exam_arm publish_aruco_cube"
 
     # pane 3
     tmux split-window -h -p 75

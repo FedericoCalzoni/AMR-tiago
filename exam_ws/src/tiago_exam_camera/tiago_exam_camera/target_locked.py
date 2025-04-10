@@ -31,7 +31,7 @@ class ArucoCubeDetection(Node):
         self.camera_info = None
         self.current_position = [0.0, 0.0]  # Initialize head position
         self.target_ids = [63, 582]
-        self.marker_size = 0.07
+        self.marker_size = 0.04667
         # Camera parameters
         self.camera_matrix = np.array([
             [522.1910329546544, 0.0, 320.5],
@@ -235,6 +235,45 @@ class ArucoCubeDetection(Node):
         self.head_state.points = [point]
         self.head_publisher.publish(self.head_state)
         
+    # def publish_marker_transform(self, corner,  marker_id, timestamp):
+    #     if self.camera_info is None:
+    #         self.get_logger().warn("Camera info not yet received. Skipping transform publishing.")
+    #         return
+        
+    #     camera_matrix = np.array(self.camera_info.k).reshape(3, 3)
+    #     dist_coeffs = np.array(self.camera_info.d)
+        
+    #     # Get the marker pose relative to the camera
+    #     rvecs, tvecs, _ = cv2.aruco.estimatePoseSingleMarkers([corner[0]], 
+    #                                                           self.marker_size, 
+    #                                                           camera_matrix, 
+    #                                                           dist_coeffs)
+        
+    #     # Create transform message
+    #     transform_msg = TransformStamped()
+    #     transform_msg.header.stamp = self.get_clock().now().to_msg()
+    #     transform_msg.header.frame_id = 'head_front_camera_rgb_optical_frame'
+    #     transform_msg.child_frame_id = f'aruco_marker_{marker_id}'
+        
+    #     # Set translation
+    #     transform_msg.transform.translation.x = float(tvecs[0][0][0])
+    #     transform_msg.transform.translation.y = float(tvecs[0][0][1])
+    #     transform_msg.transform.translation.z = float(tvecs[0][0][2])
+        
+    #     # Convert rotation vector to quaternion
+    #     rotation_matrix, _ = cv2.Rodrigues(rvecs[0][0])
+    #     r = R.from_matrix(rotation_matrix)
+    #     quat = r.as_quat()  # x, y, z, w
+        
+    #     transform_msg.transform.rotation.x = float(quat[0])
+    #     transform_msg.transform.rotation.y = float(quat[1])
+    #     transform_msg.transform.rotation.z = float(quat[2])
+    #     transform_msg.transform.rotation.w = float(quat[3])
+        
+    #     # Publish the transform
+    #     self.aruco_publisher.publish(transform_msg)
+    #     self.get_logger().info(f"Published transform for ID {marker_id}")
+    
     def publish_marker_transform(self, corner,  marker_id, timestamp):
         if self.camera_info is None:
             self.get_logger().warn("Camera info not yet received. Skipping transform publishing.")
@@ -244,7 +283,8 @@ class ArucoCubeDetection(Node):
         dist_coeffs = np.array(self.camera_info.d)
         
         # Get the marker pose relative to the camera
-        rvecs, tvecs, _ = cv2.aruco.estimatePoseSingleMarkers([corner[0]], 
+        self.get_logger().info(f"Corner: {corner}")
+        rvecs, tvecs, _ = cv2.aruco.estimatePoseSingleMarkers(corner, 
                                                               self.marker_size, 
                                                               camera_matrix, 
                                                               dist_coeffs)
@@ -273,6 +313,7 @@ class ArucoCubeDetection(Node):
         # Publish the transform
         self.aruco_publisher.publish(transform_msg)
         self.get_logger().info(f"Published transform for ID {marker_id}")
+        
         
         
 def main(args=None):
