@@ -20,15 +20,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'move_arm = gripper_control.move_arm:main',
-            'gripper_control = gripper_control.control_gripper:main',
-            'pick = gripper_control.pick:main',
-            'basic_pose = gripper_control.basic_pose:main',
-            'basic_gripper = gripper_control.basic_move_gripper:main',
-            '3d_move_arm = gripper_control.move_arm_3d:main',
-            'fake_transform = gripper_control.fake_tf_publisher:main',
-            'arm_moce_lis = gripper_control.arm_move_lis:main',
-            'arm_move_control = gripper_control.arm_move_contro:main',
+            'gripper_opener = gripper_control.gripper_opener:main'
         ],
     },
 )
