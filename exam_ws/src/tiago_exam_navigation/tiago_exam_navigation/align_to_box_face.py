@@ -36,6 +36,7 @@ class BoxFaceNavigator(Node):
         self.image_subscription = self.create_subscription(Image, '/head_front_camera/rgb/image_raw', self.image_callback, 10)
         self.bridge = CvBridge()
         self.frame = None
+        self.future = None
         self.yaw_threshold = 0.0025
         self.image_saved = False
         self.navigation_in_progress = False
@@ -85,7 +86,6 @@ class BoxFaceNavigator(Node):
 
         # Choose best face
         best_face = self.select_best_face_to_approach(faces)
-        self.done.publish(Bool(data=True))
 
         # Process the face and navigate directly
         if best_face is not None:
@@ -267,28 +267,6 @@ class BoxFaceNavigator(Node):
             self.get_logger().error(f'Unexpected error in transform_face_to_map: {e}')
             return None
 
-    def navigate_to_face(self, face_info):
-        """Navigate to the face with proper alignment and spacing."""
-        # Skip if navigation is already in progress
-        if self.navigation_in_progress:
-            return
-            
-        # Get the target pose from the face frame
-        target_pose = self.get_target_pose_from_face_frame()
-        if target_pose is None:
-            return
-            
-        # Validate the pose before sending
-        if not self.is_valid_pose(target_pose):
-            self.get_logger().warn('Generated invalid navigation pose, skipping')
-            return
-        
-        # Mark navigation as in progress
-        self.navigation_in_progress = True
-        
-        # Create and send the navigation goal
-        self.send_navigation_goal(target_pose)
-
     def is_valid_pose(self, pose):
         """Check if a pose is valid and reachable."""
         # Basic sanity checks for the pose
@@ -321,8 +299,8 @@ class BoxFaceNavigator(Node):
         self.get_logger().info(f'Sending navigation goal to position: [{pose.pose.position.x}, {pose.pose.position.y}, {pose.pose.orientation.z}]')
         
         # Create a future to get the result
-        future = self.nav_client.send_goal_async(goal_msg)
-        future.add_done_callback(self.goal_response_callback)
+        self.future = self.nav_client.send_goal_async(goal_msg)
+        self.future.add_done_callback(self.goal_response_callback)
 
     def goal_response_callback(self, future):
         """Handle the goal response."""
@@ -344,6 +322,7 @@ class BoxFaceNavigator(Node):
         status = future.result().status
         if status == 4:  # Succeeded
             self.get_logger().info('Navigation goal succeeded')
+            self.done.publish(Bool(data=True))
         else:
             self.get_logger().warning(f'Navigation goal failed with status: {status}')
         
@@ -359,8 +338,8 @@ class BoxFaceNavigator(Node):
         # Extract the frame components
         x_axis, y_axis, z_axis, face_center = self.frame
         
-        # The goal is 0.5 meters away from the face along its normal (x-axis)
-        target_position = face_center + 0.5 * x_axis  # Move away from the face
+        # The goal is 0.25 meters away from the face along its normal (x-axis)
+        target_position = face_center + 0.25 * x_axis  # Move away from the face
         
         # Calculate yaw from the x_axis + check wheter they are aligned but pointing in opposite directions
         #self.get_logger().info(f"prima componente: {x_axis[0]}")
@@ -447,7 +426,7 @@ class BoxFaceNavigator(Node):
                 best_score = score
                 best_face = transformed_face
             
-        self.get_logger().info(f"Best face is: {best_face}")
+        #self.get_logger().info(f"Best face is: {best_face}")
         return best_face
 
 
