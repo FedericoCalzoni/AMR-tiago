@@ -97,6 +97,21 @@ class TiagoArucoGrasp(Node):
         executor_thread.start()
         
         self.create_timer(1.0, self.state_machine)
+        
+    def run_node(self, package, node, args=None):
+        cmd = ['ros2', 'run', package, node]
+
+        if args:
+            cmd.extend(args)
+
+        process = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+
+        return process
     
     def move_to_pose(self, pos, quat):
         try:
@@ -196,55 +211,6 @@ class TiagoArucoGrasp(Node):
         except Exception as e:
             self.get_logger().error(f"❌ Failed in move_to_frame: {e}")
             return False
-        
-    def control_gripper(self, open=True):
-        """Controls the gripper (open or close)."""
-        self.get_logger().info(f"👐 {'Opening' if open else 'Closing'} gripper")
-        
-        # Create a JointTrajectory message for the gripper
-        msg = JointTrajectory()
-        msg.joint_names = self.gripper_joint_names
-        
-        # Define a trajectory point with the desired gripper position
-        point = JointTrajectoryPoint()
-        
-        # Set positions based on whether we want to open or close
-        if open:
-            point.positions = [0.09, 0.09]  # Open position
-        else:
-            point.positions = [0.035, 0.035]  # Closed position
-        
-        point.time_from_start = Duration(sec=1, nanosec=0)
-        
-        # Add the point to the trajectory message
-        msg.points.append(point)
-        
-        # Use action client for more reliable execution
-        goal_msg = FollowJointTrajectory.Goal()
-        goal_msg.trajectory = msg
-        
-        # Send the goal and wait for it to be accepted
-        goal_future = self.gripper_action_client.send_goal_async(goal_msg)
-        
-        # Add a timeout to prevent hanging
-        if not rclpy.spin_until_future_complete(self, goal_future, timeout_sec=2.0):
-            self.get_logger().error("❌ Gripper goal timed out")
-            return False
-        
-        goal_handle = goal_future.result()
-        
-        if not goal_handle.accepted:
-            self.get_logger().error("❌ Gripper goal was rejected")
-            return False
-        
-        # Get the result with a timeout
-        result_future = goal_handle.get_result_async()
-        if not rclpy.spin_until_future_complete(self, result_future, timeout_sec=5.0):
-            self.get_logger().error("❌ Gripper action timed out waiting for result")
-            return False
-        
-        result = result_future.result()
-        return result.result.error_code == 0
                     
     def state_machine(self):
         """State machine to handle the grabbing sequence."""
@@ -254,7 +220,7 @@ class TiagoArucoGrasp(Node):
             
             if self.move_state == "INIT":
                 # Open gripper before approaching
-                self.control_gripper(open=True)
+                self.run_node('link_attacher_client', 'gripper_control', args=['--input_string', 'OPEN'])
                 sleep(3.0)
                 # move arm to a confortable positon
                 if self.move_to_pose(pos=self.default_pose['Position'], quat=self.default_pose['Orientation']):
@@ -270,7 +236,7 @@ class TiagoArucoGrasp(Node):
             elif self.move_state == "GRASP":
                 if self.move_to_frame(self.gripper_frame):
                     self.get_logger().info("Grasp position reached, closing gripper")
-                    self.control_gripper(open=False)
+                    self.run_node('link_attacher_client', 'gripper_control', args=['--input_string', 'CLOSE'])
                     self.move_state = "LIFT"
                 sleep(3.0)
                 
