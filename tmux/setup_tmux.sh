@@ -60,7 +60,7 @@ party_mode(){
 
     # pane 4
     tmux send-keys C-l
-    tmux send-keys "ros2 "
+    tmux send-keys "ros2 run tiago_exam_navigation align_to_box_face"
 
     # pane 2
     tmux select-pane -t 1
@@ -71,7 +71,7 @@ party_mode(){
     # pane 3
     tmux split-window -h -p 50  # Split horizontally
     tmux send-keys C-l
-    tmux send-keys "run-target-locked"
+    tmux send-keys "run-nav-to-box"
 
     # pane 5
     tmux select-pane -t 4
@@ -112,7 +112,7 @@ arm(){
     # pane 5
     tmux split-window -h -p 50  # Split horizontally
     tmux send-keys C-l
-    tmux send-keys "run-target-locked"
+    tmux send-keys "run-pick-and-place"
 
     # pane 7
     tmux select-pane -t 6

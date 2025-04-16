@@ -26,7 +26,7 @@ class NavigationClient(Node):
         goal_pose.header.stamp = self.get_clock().now().to_msg()
         goal_pose.pose.position.x = x
         goal_pose.pose.position.y = y
-        goal_pose.pose.orientation.z = theta  # Simplified orientation (yaw)
+        goal_pose.pose.orientation.z = float(theta)  # Simplified orientation (yaw)
         goal_pose.pose.orientation.w = 1.0    # No rotation (quaternion format)
 
         goal_msg = NavigateToPose.Goal()
@@ -57,8 +57,8 @@ def main(args=None):
     rclpy.init(args=args)
     
     # Example coordinates (replace with your pick/place locations)
-    pick_location = (0.7, -4, np.pi/5)  # (x, y, theta)
-    #pick_location = (0.55, -2.6, 0.9)  # (x, y, theta)
+    pick_location = [-1.9327, -0.887, 0.0]  # (x, y, theta)
+    #pick_location = (0.55, -2.6, 0.9)  # [1.5080750759796975, -3.1757305318477194, 0.0]
     #place_location = (-1.35, -1.35, 0.2)
     
     nav_client = NavigationClient()
