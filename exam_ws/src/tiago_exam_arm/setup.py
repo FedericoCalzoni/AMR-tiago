@@ -23,7 +23,7 @@ setup(
             "1_aruco_tf_subscriber = tiago_exam_arm.1_aruco_tf_subscriber:main",
             "2_aruco_grasp_pose_broadcaster = tiago_exam_arm.2_aruco_grasp_pose_broadcaster:main",
             "3_move_arm = tiago_exam_arm.3_move_arm:main",
-            "4_pick_and_place = tiago_exam_arm.4_pick_and_place:main"
+            "4_pick_and_place = tiago_exam_arm.4_pick_and_place:main",
             "aruco_grab_controller = tiago_exam_arm.aruco_grab_controller:main",
             "initialize_arm = tiago_exam_arm.initialize_arm:main",
             "basic_gripper = tiago_exam_arm.basic_gripper:main",
