@@ -2,13 +2,14 @@ import numpy as np
 import math, cv2
 import tf2_ros
 import tf2_geometry_msgs
-from geometry_msgs.msg import PoseStamped, Point, Quaternion
+from geometry_msgs.msg import PoseStamped
 import rclpy
 from rclpy.node import Node
 from nav2_msgs.action import NavigateToPose
 from rclpy.action import ActionClient
 # $ source install/setup.bash
-from tiago_interfaces.msg import BoxInfo, FaceInfo 
+from std_msgs.msg import Bool
+from tiago_interfaces.msg import BoxInfo
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 
@@ -30,6 +31,7 @@ class BoxFaceNavigator(Node):
         self.tf_buffer = tf2_ros.Buffer(cache_time=rclpy.duration.Duration(seconds=30.0))
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
 
+        self.done = self.create_publisher(Bool, '/align_to_box_face/done', 10)
         self.face_subscriber_ = self.create_subscription(BoxInfo, '/box/faces_info', self.face_callback, 10)
         self.image_subscription = self.create_subscription(Image, '/head_front_camera/rgb/image_raw', self.image_callback, 10)
         self.bridge = CvBridge()
@@ -83,6 +85,7 @@ class BoxFaceNavigator(Node):
 
         # Choose best face
         best_face = self.select_best_face_to_approach(faces)
+        self.done.publish(Bool(data=True))
 
         # Process the face and navigate directly
         if best_face is not None:

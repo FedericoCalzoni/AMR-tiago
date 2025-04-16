@@ -182,6 +182,8 @@ alias run-grasp-pose='ros2 run tiago_exam_arm 2_aruco_grasp_pose_broadcaster'
 alias run-move-arm='ros2 run tiago_exam_arm 3_move_arm'
 alias run-aruco-grab-controller='ros2 run tiago_exam_arm aruco_grab_controller'
 alias run-nav-to-box='ros2 run tiago_exam_navigation navigate_to_box'
+alias run-align-to-box-face='ros2 run tiago_exam_navigation align_to_box_face'
+alias run-state-machine-navigation='ros2 run tiago_exam_navigation state_machine_navigation'
 #alias run-pick-and-place= 'ros2 run tiago_exam_arm 4_pick_and_place'
 
 # Add an "alert" alias for long running commands.  Use like so:

@@ -2,11 +2,8 @@ import rclpy, cv2
 import numpy as np
 from rclpy.node import Node
 from cv_bridge import CvBridge
-from sklearn.decomposition import PCA
-from sklearn.cluster import KMeans, DBSCAN
-from sklearn.linear_model import RANSACRegressor, LinearRegression
-from sklearn.preprocessing import PolynomialFeatures
 from sensor_msgs.msg import Image
+from std_msgs.msg import Bool
 from geometry_msgs.msg import Twist
 from sensor_msgs.msg import PointCloud2
 from sensor_msgs_py.point_cloud2 import read_points
@@ -21,6 +18,7 @@ class NavigateToBox(Node):
         self.publisher_ = self.create_publisher(Twist, '/cmd_vel', 10)
         self.faces_publisher_ = self.create_publisher(BoxInfo, '/box/faces_info', 10)
         self.z_face_publisher_ = self.create_publisher(FaceInfo, '/box/z_face_info', 10)
+        self.done = self.create_publisher(Bool, '/nav_to_box/done', 10)
         self.subscription = self.create_subscription(Image, '/head_front_camera/rgb/image_raw', self.image_callback, 10)
         self.depth_subscription = self.create_subscription(PointCloud2, '/head_front_camera/depth_registered/points', self.depth_callback, 10)
         self.bridge = CvBridge()
@@ -88,6 +86,7 @@ class NavigateToBox(Node):
 
                     # Publish faces information - custom message
                     self.publish_faces_info(faces, cv_image)
+                    self.done.publish(Bool(data=True))
             elif not self.faces_info_sent:
                 self.box_detected = True
                 self.spin()
