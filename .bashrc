@@ -106,7 +106,7 @@ rebuild-ws() {
     colcon build || return 1  # Build the workspace
 
     echo "Building pymoveit2..."
-    cd ~/AMR-tiago/pymoveit2-4.1.1/ || { echo "Error: pymoveit2 directory not found." >&2; return 1; }
+    cd ~/AMR-tiago/tiago_ws/pymoveit2-4.1.1/ || { echo "Error: pymoveit2 directory not found." >&2; return 1; }
     trash build install log  # Clean existing build artifacts
     rosdep install -y -r -i --rosdistro ${ROS_DISTRO} --from-paths .
     colcon build --merge-install --symlink-install --cmake-args "-DCMAKE_BUILD_TYPE=Release"
@@ -139,7 +139,7 @@ build-ws() {
     colcon build || return 1  # Build the workspace
 
     echo "Building pymoveit2..."
-    cd ~/AMR-tiago/pymoveit2-4.1.1/ || { echo "Error: pymoveit2 directory not found." >&2; return 1; }
+    cd ~/AMR-tiago/tiago_ws/pymoveit2-4.1.1/ || { echo "Error: pymoveit2 directory not found." >&2; return 1; }
     rosdep install -y -r -i --rosdistro ${ROS_DISTRO} --from-paths .
     colcon build --merge-install --symlink-install --cmake-args "-DCMAKE_BUILD_TYPE=Release"
     

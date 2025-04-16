@@ -1,5 +1,6 @@
 from threading import Thread
 import rclpy
+import subprocess
 from rclpy.callback_groups import ReentrantCallbackGroup
 import rclpy.executors
 from rclpy.node import Node
