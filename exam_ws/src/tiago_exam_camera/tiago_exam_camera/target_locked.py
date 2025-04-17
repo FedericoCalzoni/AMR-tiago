@@ -94,7 +94,7 @@ class ArucoCubeDetection(Node):
                         
                         self.goal_found = True
                         self.move_head(center_x, center_y)
-                        #self.publish_marker_transform(corners[best_id_idx], ids[best_id_idx][0], msg.header.stamp)
+                        self.publish_marker_transform(corners[best_id_idx], ids[best_id_idx][0], msg.header.stamp)
                 
             elif self.last_best_id_idx is not None and self.lost_track_count < self.track_memory:
                 self.lost_track_count += 1

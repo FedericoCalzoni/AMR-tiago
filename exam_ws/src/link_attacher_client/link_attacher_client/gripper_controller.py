@@ -1,4 +1,4 @@
-import rclpy
+import rclpy, argparse
 from rclpy.node import Node
 from builtin_interfaces.msg import Duration
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
@@ -35,7 +35,7 @@ class GripperController(Node):
         self.model2 = 'aruco_cube_exam_id582'
         self.link2 = 'link'
 
-    def control_gripper(self, open=True):
+    def control_gripper(self, open):
         """Controls the gripper (open or close) and attaches/detaches the object."""
         self.get_logger().info(f"👐 {'Opening' if open else 'Closing'} gripper")
         
@@ -44,7 +44,11 @@ class GripperController(Node):
         msg.joint_names = self.gripper_joint_names
 
         point = JointTrajectoryPoint()
-        point.positions = [0.09, 0.09] if open else [0.035, 0.035]
+        
+        #  The maxium gripper opening is 0.065 m but it gives issues,
+        #  so we set it to 0.060 m
+        #  Close gripper to 0.030 m since aruco_cube_exam_id582 is 0.06 m
+        point.positions = [0.060, 0.060] if open else [0.030, 0.030]
         point.time_from_start = Duration(sec=1, nanosec=0)
         msg.points.append(point)
 
@@ -123,12 +127,21 @@ class GripperController(Node):
             self.get_logger().error("❌ Failed to detach object.")
 
 def main(args=None):
-    rclpy.init(args=args)
+    parser = argparse.ArgumentParser(description='Gripper controller Node')
+    parser.add_argument('--input_string', type=str, required=True, help='possible values: "OPEN" or "CLOSE"')
+    parsed_args, other_args = parser.parse_known_args()
+    
+    rclpy.init(args=other_args)
     node = GripperController()
 
-    # Example use
-    node.control_gripper(open=False)  # Close gripper & attach
-    # node.control_gripper(open=True)   # Open gripper & detach
+    command = parsed_args.input_string.strip().upper()
+    
+    if command == "OPEN":
+        node.control_gripper(open=True)   # Open gripper & detach
+    elif command == "CLOSE":
+        node.control_gripper(open=False)  # Close gripper & attach
+    else:
+        node.get_logger().error(f"❌ Invalid input_string: {parsed_args.input_string} (use 'OPEN' or 'CLOSE')")
 
     node.destroy_node()
     rclpy.shutdown()

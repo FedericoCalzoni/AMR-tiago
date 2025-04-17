@@ -91,13 +91,15 @@ arm(){
 
     # pane 6
     tmux send-keys C-l
-    tmux send-keys "run-aruco-grab-controller "
 
     # pane 2
     tmux select-pane -t 1
     tmux split-window -h -p 80  # Split horizontally
     tmux send-keys C-l
-    tmux send-keys "ros2 run tiago_exam_arm publish_aruco_cube"
+    tmux send-keys " ros2 run tiago_exam_arm publish_aruco_cube | \
+    ros2 run tiago_exam_arm publish_aruco_cube --in aruco1 | \
+    ros2 run tiago_exam_arm publish_aruco_cube --in aruco2"
+    
 
     # pane 3
     tmux split-window -h -p 75
@@ -112,7 +114,7 @@ arm(){
     # pane 5
     tmux split-window -h -p 50  # Split horizontally
     tmux send-keys C-l
-    tmux send-keys "run-pick-and-place"
+    tmux send-keys "run-target-locked"
 
     # pane 7
     tmux select-pane -t 6
