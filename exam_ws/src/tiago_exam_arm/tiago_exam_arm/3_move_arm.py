@@ -96,7 +96,28 @@ class TiagoArucoGrasp(Node):
         executor_thread = Thread(target=executor.spin, daemon=True, args=())
         executor_thread.start()
         
-        self.create_timer(1.0, self.state_machine)
+        self.create_timer(1.0, self.check_and_start)
+                
+    def check_and_start(self):
+        """Check if required frames are available and start the state machine when they are"""
+        self.get_logger().info(f"Checking for required frames...")
+        
+        try:
+            for frame in [self.approach_frame, self.gripper_frame]:
+                self.tf_buffer.lookup_transform(
+                    self.robot_base_frame,
+                    frame,
+                    rclpy.time.Time(),
+                    rclpy.duration.Duration(seconds=0.1)
+                )
+            
+            self.get_logger().info("All required frames are available! Starting the state machine.")
+            self.create_timer(1.0, self.state_machine)
+            
+        except Exception as e:
+            self.get_logger().warn(f"Not all frames available yet: {e}")
+            self.get_logger().info("Will check again in 1 second...")
+       
         
     def run_node(self, package, node, args=None):
         cmd = ['ros2', 'run', package, node]

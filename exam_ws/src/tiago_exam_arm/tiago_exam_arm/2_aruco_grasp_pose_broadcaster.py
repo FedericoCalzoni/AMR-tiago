@@ -44,6 +44,7 @@ class ArucoGraspBroadcaster(Node):
         self.t_base = None
         self.frame_aruco = None
         self.max_tilt = 0.04
+        self.good_frame_target = None
         
         # Dictionary to store our transform pairs for visualization
         self.transform_pairs = {}
@@ -139,7 +140,12 @@ class ArucoGraspBroadcaster(Node):
         if vertical_alignment > self.max_tilt:
             self.get_logger().warn(f"Frame not vertical:{str(vertical_alignment)}")
             # Not aligned enough, don't publish frames
-            return
+        else:
+            self.good_frame_target = frame_target
+        
+        if self.good_frame_target is not None:
+            frame_target = self.good_frame_target
+            
         self.get_logger().info(f"vertical_alignment:'{str(vertical_alignment)}")
         
         self.publish_frame(frame_target, self.frame_target_name)

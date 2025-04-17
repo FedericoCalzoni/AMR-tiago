@@ -1,4 +1,5 @@
-import rclpy, cv2, math, time
+import rclpy, cv2, time
+import argparse
 import numpy as np
 from rclpy.node import Node
 from cv_bridge import CvBridge
@@ -12,8 +13,13 @@ from tf2_ros import TransformBroadcaster
 
 class ArucoCubeDetection(Node):
 
-    def __init__(self):
+    def __init__(self, target_id):
         super().__init__('image_subscriber')
+        
+        if target_id not in [582, 63]:
+            raise ValueError("Invalid target ID. Must be either 582 or 63.")
+        
+        self.target_id = target_id
         self.camera_info_subscription = self.create_subscription(CameraInfo, '/head_front_camera/rgb/camera_info', self.camera_info_callback, 1)
         self.image_subscription = self.create_subscription(Image, '/head_front_camera/rgb/image_raw', self.image_callback, 1)
         self.joint_state_subscription = self.create_subscription(JointState, '/joint_states', self.joint_state_callback, 1)
@@ -32,13 +38,13 @@ class ArucoCubeDetection(Node):
         self.current_position = [0.0, 0.0]  # Initialize head position
         self.target_ids = [63, 582]
         self.marker_size = 0.04667
-        self.get_logger().info('ArUco Detector Node initialized')
         # Camera parameters
         self.camera_matrix = np.array([
             [522.1910329546544, 0.0, 320.5],
             [0.0, 522.1910329546544, 240.5],
             [0.0, 0.0, 1.0]])
         self.dist_coeffs = np.array([1.0e-08, 1.0e-08, 1.0e-08, 1.0e-08, 1.0e-08])
+        self.get_logger().info(f'ArUco Detector Node initialized to track marker ID: {self.target_id}')
 
     def camera_info_callback(self, msg):
         self.camera_info = msg
@@ -59,8 +65,8 @@ class ArucoCubeDetection(Node):
         
         if ids is not None:
             # Filter only markers with our target ID
-            target_indices = [i for i, id in enumerate(ids) if id[0] == self.target_ids[1]]
-            if target_indices:
+            target_indices = [i for i, id in enumerate(ids) if id[0] == self.target_id]
+            if len(target_indices) > 1:
                 lowest_x_normal = float('inf')
                 current_best_id_idx = None
 
@@ -277,9 +283,13 @@ class ArucoCubeDetection(Node):
         
         
 def main(args=None):
+    parser = argparse.ArgumentParser(description='ArUco marker detection')
+    parser.add_argument('target_id', type=int, help='ArUco marker ID to track (582 or 63)')
+    parsed_args = parser.parse_args()
+    
     rclpy.init(args=args)
-
-    locking_target = ArucoCubeDetection()
+    
+    locking_target = ArucoCubeDetection(target_id=parsed_args.target_id)
 
     rclpy.spin(locking_target)
     locking_target.destroy_node()
