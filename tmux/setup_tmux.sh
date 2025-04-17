@@ -91,6 +91,7 @@ arm(){
 
     # pane 6
     tmux send-keys C-l
+    tmux send-keys "run-rviz"
 
     # pane 2
     tmux select-pane -t 1

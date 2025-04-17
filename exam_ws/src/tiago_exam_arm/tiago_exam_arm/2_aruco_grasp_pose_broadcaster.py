@@ -43,6 +43,7 @@ class ArucoGraspBroadcaster(Node):
         
         self.t_base = None
         self.frame_aruco = None
+        self.max_tilt = 0.04
         
         # Dictionary to store our transform pairs for visualization
         self.transform_pairs = {}
@@ -52,8 +53,8 @@ class ArucoGraspBroadcaster(Node):
         orientation = Rotation.Quaternion(msg.transform.rotation.x, msg.transform.rotation.y, msg.transform.rotation.z, msg.transform.rotation.w) 
         # camera -> aruco
         self.frame_aruco = Frame(orientation, position)
-        self.get_logger().info(f"Received ArUco transform: pos={position}")
-        self.get_logger().info(f"quat=[x={msg.transform.rotation.x}, y={msg.transform.rotation.y}, z={msg.transform.rotation.z}, w={msg.transform.rotation.w}]")
+        # self.get_logger().info(f"Received ArUco transform: pos={position}")
+        # self.get_logger().info(f"quat=[x={msg.transform.rotation.x}, y={msg.transform.rotation.y}, z={msg.transform.rotation.z}, w={msg.transform.rotation.w}]")
         
         # Store camera -> aruco transform pair for visualization
         self.transform_pairs["camera_to_aruco"] = {
@@ -70,13 +71,6 @@ class ArucoGraspBroadcaster(Node):
                 self.camera_frame, 
                 rclpy.time.Time()
             ) # camera -> base
-            
-            # Debug: Log camera transform in base frame
-            camera_pos = self.t_base.transform.translation
-            camera_rot = self.t_base.transform.rotation
-            self.get_logger().info(f"Camera transform in base frame:")
-            self.get_logger().info(f"Position: x={camera_pos.x:.4f}, y={camera_pos.y:.4f}, z={camera_pos.z:.4f}")
-            self.get_logger().info(f"Quaternion: x={camera_rot.x:.4f}, y={camera_rot.y:.4f}, z={camera_rot.z:.4f}, w={camera_rot.w:.4f}")
             
             # Store base -> camera transform pair for visualization
             frame_robot = self.get_frame_kdl(self.t_base)
@@ -115,9 +109,6 @@ class ArucoGraspBroadcaster(Node):
         t.transform.translation.y = frame.p.y()
         t.transform.translation.z = frame.p.z()
         
-        # Debug: Log final frame position before broadcasting
-        self.get_logger().info(f"Publishing {frame_name} at position: x={frame.p.x():.4f}, y={frame.p.y():.4f}, z={frame.p.z():.4f}")
-        
         quat = frame.M.GetQuaternion()
         quat = np.array(quat) / np.linalg.norm(quat)
         t.transform.rotation.x = quat[0]
@@ -134,25 +125,26 @@ class ArucoGraspBroadcaster(Node):
             
         frame_robot = self.get_frame_kdl(self.t_base)
         
-        # Debug: Log frame_robot details
-        self.get_logger().info(f"Frame robot position: x={frame_robot.p.x():.4f}, y={frame_robot.p.y():.4f}, z={frame_robot.p.z():.4f}")
-        
+
         # Calculate target frame (marker position in robot base frame)
         # frame_aruco: camera -> aruco
         # frame_robot: camera -> base
-        
         frame_target = frame_robot * self.frame_aruco
         
-        # Debug: Check multiplication result
-        self.get_logger().info(f"Calculation: frame_robot * frame_aruco")
-        self.get_logger().info(f"Input 1 - frame_robot: pos=({frame_robot.p.x():.4f}, {frame_robot.p.y():.4f}, {frame_robot.p.z():.4f})")
-        self.get_logger().info(f"Input 2 - frame_aruco: pos=({self.frame_aruco.p.x():.4f}, {self.frame_aruco.p.y():.4f}, {self.frame_aruco.p.z():.4f})")
-        self.get_logger().info(f"Result - frame_target: pos=({frame_target.p.x():.4f}, {frame_target.p.y():.4f}, {frame_target.p.z():.4f})")
+        # Check if x-axis of frame_target is mostly aligned with vertical world axis
+        x_axis = frame_target.M.UnitX()  # Extract x unit vector
+        vertical_alignment = abs(x_axis[2])  # z-component represents vertical alignment
+        
+        # Check if the alignment is within the threshold
+        if vertical_alignment > self.max_tilt:
+            self.get_logger().warn(f"Frame not vertical:{str(vertical_alignment)}")
+            # Not aligned enough, don't publish frames
+            return
+        self.get_logger().info(f"vertical_alignment:'{str(vertical_alignment)}")
         
         self.publish_frame(frame_target, self.frame_target_name)
         
-        # Calculate pre-grasp approach frame (offset in front of the marker)
-        # Creating an approach position 10cm in front of the marker
+        # Calculate pre-grasp approach frame
         frame_approach = frame_target * Frame(Rotation(), Vector(0, 0, 0.5))
         # Rotate to have the gripper approach horizontally
         frame_approach.M.DoRotY(np.pi/2)
@@ -165,15 +157,7 @@ class ArucoGraspBroadcaster(Node):
         frame_grasp.M.DoRotY(np.pi/2)
         # frame_grasp.M.DoRotX(np.pi)
         self.publish_frame(frame_grasp, self.frame_grasp_name)
-        
-        # Store aruco -> target transform pair for visualization
-        self.transform_pairs["aruco_to_target"] = {
-            "parent": "aruco_marker",
-            "child": self.frame_target_name,
-            "frame": frame_target,
-            "color": [0.0, 0.0, 1.0, 1.0]  # Blue
-        }
-        
+
         # Publish visualization markers
         self.publish_transform_markers()
         

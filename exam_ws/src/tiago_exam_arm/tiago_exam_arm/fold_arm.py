@@ -52,7 +52,7 @@ def main(args=None):
     
     # Example folded position - customize these values as needed
     zero_position = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-    folded_position = [0.0, 0.0, -3.0, 1.5, 0.0, 0.0, 0.0]
+    folded_position = [3.0, 0.0, -3.0, 1.5, 0.0, 0.0, 0.0]
 
     node.move_arm_to_position(zero_position)
     node.get_logger().info("Moving arm to zero position")

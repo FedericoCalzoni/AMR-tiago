@@ -223,9 +223,9 @@ class TiagoArucoGrasp(Node):
                 self.run_node('link_attacher_client', 'gripper_control', args=['--input_string', 'OPEN'])
                 sleep(3.0)
                 # move arm to a confortable positon
-                if self.move_to_pose(pos=self.default_pose['Position'], quat=self.default_pose['Orientation']):
-                    self.move_state = "APPROACH"
-                sleep(3.0)
+                self.navigation_process = self.run_node('tiago_exam_arm', 'fold_arm')
+                sleep(10.0)
+                self.move_state = "APPROACH"
                 
             elif self.move_state == "APPROACH":
                 if self.move_to_frame(self.approach_frame):

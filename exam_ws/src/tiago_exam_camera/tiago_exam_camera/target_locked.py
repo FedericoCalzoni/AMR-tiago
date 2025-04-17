@@ -244,7 +244,6 @@ class ArucoCubeDetection(Node):
         dist_coeffs = np.array(self.camera_info.d)
 
         # Get the marker pose relative to the camera
-        self.get_logger().info(f"Corner: {corner}")
         rvecs, tvecs, _ = cv2.aruco.estimatePoseSingleMarkers(corner, 
                                                               self.marker_size, 
                                                               camera_matrix, 
@@ -273,7 +272,7 @@ class ArucoCubeDetection(Node):
         
         # Publish the transform
         self.aruco_publisher.publish(transform_msg)
-        self.get_logger().info(f"Published transform for ID {marker_id}")
+        # self.get_logger().info(f"Published transform for ID {marker_id}")
         
         
         
