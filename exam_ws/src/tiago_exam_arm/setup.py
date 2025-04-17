@@ -31,6 +31,7 @@ setup(
             "basic_pose = tiago_exam_arm.basic_pose:main",
             "publish_aruco_cube = tiago_exam_arm.publish_aruco_cube:main", 
             "tf_broadcaster = tiago_exam_arm.tf_broadcaster:main",
+            "fold_arm = tiago_exam_arm.fold_arm:main",
         ],
     },
 )

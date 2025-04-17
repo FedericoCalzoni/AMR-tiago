@@ -12,7 +12,7 @@ from std_msgs.msg import Bool
 from tiago_interfaces.msg import BoxInfo
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
-
+from nav_msgs.msg import Odometry
 
 # from: head_front_camera_depth_optical_frame
 # to: head_front_camera_depth_frame
@@ -31,15 +31,21 @@ class BoxFaceNavigator(Node):
         self.tf_buffer = tf2_ros.Buffer(cache_time=rclpy.duration.Duration(seconds=30.0))
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
 
-        self.done = self.create_publisher(Bool, '/align_to_box_face/done', 10)
+        self.done_publisher = self.create_publisher(Bool, '/align_to_box_face/done', 10)
+        self.state_machine_timer = self.create_timer(0.1, self.is_done)
         self.face_subscriber_ = self.create_subscription(BoxInfo, '/box/faces_info', self.face_callback, 10)
         self.image_subscription = self.create_subscription(Image, '/head_front_camera/rgb/image_raw', self.image_callback, 10)
         self.bridge = CvBridge()
         self.frame = None
-        self.future = None
-        self.yaw_threshold = 0.0025
+        self.done = False
+        self.target_pose = None
+        self.yaw_threshold = 1/90
         self.image_saved = False
         self.navigation_in_progress = False
+
+    def is_done(self):
+        if self.done:
+            self.done_publisher.publish(Bool(data=True))
 
     def image_callback(self, msg):
         if self.frame is not None and not self.image_saved:
@@ -56,6 +62,7 @@ class BoxFaceNavigator(Node):
             cv2.arrowedLine(cv_image, origin, z_axis_end, (255, 0, 0), 2)
 
             self.image_saved = True
+            self.status = 0
             #cv2.imwrite("camera_image.png", cv_image)
 
     def from_mt_to_pixel(self, point):
@@ -104,6 +111,7 @@ class BoxFaceNavigator(Node):
                 
             # Calculate navigation goal
             target_pose = self.get_target_pose_from_face_frame()
+            self.target_pose = target_pose
             if target_pose is None:
                 self.get_logger().error('Failed to calculate target pose')
                 self.navigation_in_progress = False
@@ -119,7 +127,7 @@ class BoxFaceNavigator(Node):
             self.navigation_in_progress = False
                 
         # Send navigation goal
-        self.send_navigation_goal(target_pose)            
+        self.send_navigation_goal(target_pose)   
 
     def get_face_frame(self, face_info): 
         face_center = face_info['center']
@@ -180,7 +188,7 @@ class BoxFaceNavigator(Node):
                     
                     # Calculate the new normal vector in the map frame
                     new_center = np.array([transformed_center.pose.position.x, 
-                                        transformed_center.pose.position.y, 
+                                        transformed_center.pose.position.y * 0.95, # Correction factor
                                         transformed_center.pose.position.z])
                     new_normal_point = np.array([transformed_normal_point.pose.position.x, 
                                             transformed_normal_point.pose.position.y, 
@@ -269,15 +277,9 @@ class BoxFaceNavigator(Node):
 
     def is_valid_pose(self, pose):
         """Check if a pose is valid and reachable."""
-        # Basic sanity checks for the pose
         x, y, z = pose.pose.position.x, pose.pose.position.y, pose.pose.position.z
-        
-        # Check if the position is within reasonable bounds
-        # Adjust these values based on your environment
         if abs(x) > 10.0 or abs(y) > 10.0 or abs(z) > 1.0:
             return False
-            
-        # For TIAGo, we typically want to keep z close to 0 since it's a ground robot
         if abs(z) > 0.1:  # TIAGo can't fly!
             self.get_logger().warn(f'Z value too high: {z}. Setting to 0.')
             pose.pose.position.z = 0.0
@@ -299,8 +301,8 @@ class BoxFaceNavigator(Node):
         self.get_logger().info(f'Sending navigation goal to position: [{pose.pose.position.x}, {pose.pose.position.y}, {pose.pose.orientation.z}]')
         
         # Create a future to get the result
-        self.future = self.nav_client.send_goal_async(goal_msg)
-        self.future.add_done_callback(self.goal_response_callback)
+        future = self.nav_client.send_goal_async(goal_msg)
+        future.add_done_callback(self.goal_response_callback)
 
     def goal_response_callback(self, future):
         """Handle the goal response."""
@@ -319,12 +321,12 @@ class BoxFaceNavigator(Node):
 
     def get_result_callback(self, future):
         """Handle the result of the navigation action."""
-        status = future.result().status
-        if status == 4:  # Succeeded
-            self.get_logger().info('Navigation goal succeeded')
-            self.done.publish(Bool(data=True))
+        self.status = future.result().status
+        if self.status == 4:
+            self.get_logger().info('\033[94mNavigation goal succeeded\033[0m')
+            self.done = True
         else:
-            self.get_logger().warning(f'Navigation goal failed with status: {status}')
+            self.get_logger().warning(f'Navigation goal failed with status: {self.status}')
         
         # Reset navigation flag to allow new goals
         self.navigation_in_progress = False
@@ -338,8 +340,8 @@ class BoxFaceNavigator(Node):
         # Extract the frame components
         x_axis, y_axis, z_axis, face_center = self.frame
         
-        # The goal is 0.25 meters away from the face along its normal (x-axis)
-        target_position = face_center + 0.25 * x_axis  # Move away from the face
+        # The goal is 0.4 meters away from the face along its normal (x-axis)
+        target_position = face_center + 0.1 * x_axis  # Move away from the face
         
         # Calculate yaw from the x_axis + check wheter they are aligned but pointing in opposite directions
         #self.get_logger().info(f"prima componente: {x_axis[0]}")
