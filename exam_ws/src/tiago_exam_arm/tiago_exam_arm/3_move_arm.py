@@ -238,9 +238,16 @@ class TiagoArucoGrasp(Node):
                     self.get_logger().info("Grasp position reached, closing gripper")
                     self.run_node('link_attacher_client', 'gripper_control', args=['--input_string', 'CLOSE'])
                     self.move_state = "LIFT"
-                sleep(3.0)
+                sleep(10.0)
+                self.get_logger().info("Gripper closed, lifting marker")
                 
             elif self.move_state == "LIFT":
+                if self.move_to_frame(self.approach_frame):
+                    self.get_logger().info("LIFT position reached, moving to TRANSPORT state")
+                    self.move_state = "TRANSPORT"
+                sleep(3.0)
+                
+            elif self.move_state == "TRANSPORT":
                 if self.move_to_pose(pos=self.default_pose['Position'], quat=self.default_pose['Orientation']):
                     self.get_logger().info("Marker lifted, task complete!")
                     self.move_state = "DONE"

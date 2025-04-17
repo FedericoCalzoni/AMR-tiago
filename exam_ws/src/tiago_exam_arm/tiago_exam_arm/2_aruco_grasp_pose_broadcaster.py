@@ -153,15 +153,17 @@ class ArucoGraspBroadcaster(Node):
         
         # Calculate pre-grasp approach frame (offset in front of the marker)
         # Creating an approach position 10cm in front of the marker
-        frame_approach = frame_target * Frame(Rotation(), Vector(0, 0, 0.4))
+        frame_approach = frame_target * Frame(Rotation(), Vector(0, 0, 0.5))
         # Rotate to have the gripper approach horizontally
         frame_approach.M.DoRotY(np.pi/2)
+        # frame_approach.M.DoRotX(np.pi)
         self.publish_frame(frame_approach, self.frame_approach_name)
         
         # Calculate the final grasp frame
         # This is closer to the marker than the approach frame
-        frame_grasp = frame_target * Frame(Rotation(), Vector(0, 0, 0.2))
+        frame_grasp = frame_target * Frame(Rotation(), Vector(0, 0, 0.24))
         frame_grasp.M.DoRotY(np.pi/2)
+        # frame_grasp.M.DoRotX(np.pi)
         self.publish_frame(frame_grasp, self.frame_grasp_name)
         
         # Store aruco -> target transform pair for visualization

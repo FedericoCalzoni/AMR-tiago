@@ -48,7 +48,7 @@ class GripperController(Node):
         #  The maxium gripper opening is 0.065 m but it gives issues,
         #  so we set it to 0.060 m
         #  Close gripper to 0.030 m since aruco_cube_exam_id582 is 0.06 m
-        point.positions = [0.060, 0.060] if open else [0.030, 0.030]
+        point.positions = [0.064, 0.064] if open else [0.037, 0.037]
         point.time_from_start = Duration(sec=1, nanosec=0)
         msg.points.append(point)
 
