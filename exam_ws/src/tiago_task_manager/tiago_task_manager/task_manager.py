@@ -47,17 +47,16 @@ class TaskManager(Node):
         if args:
             cmd.extend([str(arg) for arg in args])
 
-        process = subprocess.Popen(
-            cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True
-        )
+        # process = subprocess.Popen(
+        #     cmd,
+        #     stdout=subprocess.PIPE,
+        #     stderr=subprocess.PIPE,
+        #     text=True
+        # )
         
         process = subprocess.Popen(cmd)
         
         # process = subprocess.run(cmd)
-        
 
         return process
     

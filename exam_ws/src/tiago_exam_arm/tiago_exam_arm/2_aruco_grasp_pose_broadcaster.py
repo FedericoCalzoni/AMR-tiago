@@ -145,9 +145,9 @@ class ArucoGraspBroadcaster(Node):
         
         if self.good_frame_target is not None:
             frame_target = self.good_frame_target
-            
-        self.get_logger().info(f"vertical_alignment:'{str(vertical_alignment)}")
-        
+        else:
+            raise ValueError("Frame target not valid, not publishing frames.")
+                    
         self.publish_frame(frame_target, self.frame_target_name)
         
         # Calculate pre-grasp approach frame
