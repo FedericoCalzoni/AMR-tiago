@@ -48,6 +48,9 @@ class TiagoArmPositionNode(Node):
         return True
 
 def main(args=None):
+    
+    # USAGE: ros2 run tiago_exam_arm fold_arm.py --input_string nav
+    
     parser = argparse.ArgumentParser(description='ROS2 Shape Publisher Node')
     parser.add_argument('--input_string', type=str, default='arm',
                         help='Input string parameter')
@@ -65,9 +68,9 @@ def main(args=None):
         folded_position = folded_position_manipulation
 
 
-    node.move_arm_to_position(zero_position)
-    node.get_logger().info("Moving arm to zero position")
-    time.sleep(3.0)
+    # node.move_arm_to_position(zero_position)
+    # node.get_logger().info("Moving arm to zero position")
+    # time.sleep(3.0)
     success = node.move_arm_to_position(folded_position)
     
     if success:

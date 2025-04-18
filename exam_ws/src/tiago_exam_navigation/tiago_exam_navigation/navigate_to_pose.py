@@ -6,6 +6,7 @@ from rclpy.node import Node
 from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped
 from nav2_msgs.action import NavigateToPose
 import numpy as np
+import argparse
 
 class NavigationClient(Node):
     def __init__(self):
@@ -54,17 +55,22 @@ class NavigationClient(Node):
         rclpy.shutdown()
 
 def main(args=None):
+    # Parse command line arguments
+    
+    # USAGE: ros2 run tiago_exam_navigation navigate_to_pose.py --goal x y theta
+    
+    parser = argparse.ArgumentParser(description='Navigation client')
+    parser.add_argument('--goal', type=float, nargs=3, required=True,
+                      help='Goal pose as [x, y, theta]')
+    parsed_args = parser.parse_args(args=args)
+    
     rclpy.init(args=args)
     
-    # Example coordinates (replace with your pick/place locations)
-    pick_location = [-1.9327, -0.887, 0.0]  # (x, y, theta)
-    #pick_location = (0.55, -2.6, 0.9)  # [1.5080750759796975, -3.1757305318477194, 0.0]
-    #place_location = (-1.35, -1.35, 0.2)
+    goal_pose = parsed_args.goal
     
     nav_client = NavigationClient()
     
-    # Send the first goal (pick location)
-    nav_client.send_goal(*pick_location)
+    nav_client.send_goal(*goal_pose)
     
     # Spin to execute the goal
     rclpy.spin(nav_client)

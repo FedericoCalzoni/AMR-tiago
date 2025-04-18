@@ -1,4 +1,5 @@
 from threading import Thread
+import argparse
 import rclpy
 import subprocess
 from rclpy.callback_groups import ReentrantCallbackGroup
@@ -23,7 +24,7 @@ from time import sleep
 
 class TiagoArucoGrasp(Node):
 
-    def __init__(self):
+    def __init__(self, action=None):
         super().__init__('tiago_aruco_grasp')
         
         self.tf_buffer = Buffer()
@@ -44,6 +45,11 @@ class TiagoArucoGrasp(Node):
         self.approach_frame = "aruco_marker_frame_approach"
         self.gripper_frame = "aruco_marker_frame_grasp"
         self.ee_frame = "arm_tool_link"
+        
+        self.action = action
+        
+        if self.action == None:
+            raise ValueError("Action not specified. Use --action argument to specify the action: PICK63, PICK582, PLACE63, PLACE582")
 
         # Create callback group that allows execution of callbacks in parallel without restrictions
         callback_group = ReentrantCallbackGroup()
@@ -112,7 +118,13 @@ class TiagoArucoGrasp(Node):
                 )
             
             self.get_logger().info("All required frames are available! Starting the state machine.")
-            self.create_timer(1.0, self.state_machine)
+            
+            if self.action == "PICK63" or self.action == "PICK582":
+                self.create_timer(1.0, self.state_machine_PICK)
+            elif self.action == "PLACE63" or self.action == "PLACE582":
+                self.create_timer(1.0, self.state_machine_PLACE)
+            else:
+                raise ValueError("Invalid action specified. Use PICK63, PICK582, PLACE63, or PLACE582.")
             
         except Exception as e:
             self.get_logger().warn(f"Not all frames available yet: {e}")
@@ -233,7 +245,7 @@ class TiagoArucoGrasp(Node):
             self.get_logger().error(f"❌ Failed in move_to_frame: {e}")
             return False
                     
-    def state_machine(self):
+    def state_machine_PICK(self):
         """State machine to handle the grabbing sequence."""
         while rclpy.ok():
             
@@ -257,7 +269,13 @@ class TiagoArucoGrasp(Node):
             elif self.move_state == "GRASP":
                 if self.move_to_frame(self.gripper_frame):
                     self.get_logger().info("Grasp position reached, closing gripper")
-                    self.run_node('link_attacher_client', 'gripper_control', args=['--input_string', 'CLOSE63'])
+                    
+                    if self.action == "PICK63":
+                        self.run_node('link_attacher_client', 'gripper_control', args=['--input_string', 'CLOSE63'])
+                    elif self.action == "PICK582":
+                        self.run_node('link_attacher_client', 'gripper_control', args=['--input_string', 'CLOSE582'])
+                    else:
+                        raise ValueError("Invalid action specified. Use PICK63 or PICK582.")
                     self.move_state = "LIFT"
                 sleep(10.0)
                 self.get_logger().info("Gripper closed, lifting marker")
@@ -277,15 +295,54 @@ class TiagoArucoGrasp(Node):
             elif self.move_state == "DONE":
                 self.get_logger().info("STATE MACHINE ENDED")
                 break
+            
+    def state_machine_PLACE(self):
+        """State machine to handle the grabbing sequence."""
+        while rclpy.ok():
+            
+            self.get_logger().info(f"Current state: {self.move_state}")
+            
+            if self.move_state == "INIT":
+                self.navigation_process = self.run_node('tiago_exam_arm', 'fold_arm')
+                sleep(10.0)
+                self.move_state = "HOVER_THE_TABLE"
+                
+            elif self.move_state == "HOVER_THE_TABLE":
+                self.navigation_process = self.run_node('tiago_exam_arm', 'fold_arm')
+                sleep(10.0)
+                self.move_state = "RELEASE"
+                sleep(3.0)
+                
+            elif self.move_state == "RELEASE":
+                self.run_node('link_attacher_client', 'gripper_control', args=['--input_string', 'OPEN'])
+                self.move_state = "LIFT"
+                sleep(10.0)
+                self.get_logger().info("Gripper open, lifting arm")
+                
+            elif self.move_state == "LIFT":
+                self.navigation_process = self.run_node('tiago_exam_arm', 'fold_arm')
+                self.get_logger().info("LIFT position reached, moving to TRANSPORT state")
+                self.move_state = "DONE"
+                sleep(3.0)
+                    
+            elif self.move_state == "DONE":
+                self.get_logger().info("STATE MACHINE ENDED")
+                break
 
 def main(args=None):
     rclpy.init(args=args)
 
-    tiago_move_node = TiagoArucoGrasp()
+    # USAGE: ros2 run tiago_exam_arm 3_move_arm --action PICK63
+    
+    parser = argparse.ArgumentParser(description='Tiago Aruco Grasp Node')
+    parser.add_argument('--action', type=str, choices=['PICK63', 'PICK582', 'PLACE63', 'PLACE582'],
+                        help='Action to perform: PICK63, PICK582, PLACE63, or PLACE582')
+    parsed_args = parser.parse_args()
+    
+    tiago_move_node = TiagoArucoGrasp(action=parsed_args.action)
 
     rclpy.spin(tiago_move_node)
     tiago_move_node.destroy_node()
-    
     
     rclpy.shutdown()
 

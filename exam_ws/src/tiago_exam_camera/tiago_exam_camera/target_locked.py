@@ -283,6 +283,9 @@ class ArucoCubeDetection(Node):
         
         
 def main(args=None):
+    
+    # USAGE: ros2 run tiago_exam_camera target_locked.py <target_id>
+    
     parser = argparse.ArgumentParser(description='ArUco marker detection')
     parser.add_argument('target_id', type=int, help='ArUco marker ID to track (582 or 63)')
     parsed_args = parser.parse_args()

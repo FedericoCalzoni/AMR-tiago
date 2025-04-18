@@ -9,7 +9,7 @@ from geometry_msgs.msg import Twist
 from sensor_msgs.msg import PointCloud2
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 from sensor_msgs_py.point_cloud2 import read_points
-import open3d as o3d
+# import open3d as o3d
 
 from tiago_interfaces.msg import BoxInfo, FaceInfo  # Import the custom message types
 from geometry_msgs.msg import Point
@@ -308,9 +308,9 @@ class NavigateToBox(Node):
             - 'center': center point of the face
             - 'normal': normal vector of the face
         """
-        # Convert to Open3D point cloud for easier processing
-        pcd = o3d.geometry.PointCloud()
-        pcd.points = o3d.utility.Vector3dVector(points)
+        # # Convert to Open3D point cloud for easier processing
+        # pcd = o3d.geometry.PointCloud()
+        # pcd.points = o3d.utility.Vector3dVector(points)
         
         # List to store detected faces
         faces = []
