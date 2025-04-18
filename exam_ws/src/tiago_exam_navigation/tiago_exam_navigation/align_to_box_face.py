@@ -38,6 +38,7 @@ class BoxFaceNavigator(Node):
         self.bridge = CvBridge()
         self.frame = None
         self.done = False
+        self.shutdown_timer = None
         self.target_pose = None
         self.yaw_threshold = 1/90
         self.image_saved = False
@@ -324,6 +325,7 @@ class BoxFaceNavigator(Node):
         self.status = future.result().status
         if self.status == 4:
             self.get_logger().info('\033[94mNavigation goal succeeded\033[0m')
+            self.shutdown_timer = self.create_timer(2.0, self.delayed_shutdown)
             self.done = True
         else:
             self.get_logger().warning(f'Navigation goal failed with status: {self.status}')
@@ -431,13 +433,24 @@ class BoxFaceNavigator(Node):
         #self.get_logger().info(f"Best face is: {best_face}")
         return best_face
 
+    def delayed_shutdown(self):
+        self.get_logger().info("Delayed shutdown timer triggered - shutting down node")
+        if self.shutdown_timer:
+            self.shutdown_timer.cancel()
+        cv2.destroyAllWindows()
+        rclpy.shutdown()
+        
 
 def main(args=None):
     rclpy.init(args=args)
     node = BoxFaceNavigator()
-    rclpy.spin(node)
-    node.destroy_node()
-    rclpy.shutdown()
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        cv2.destroyAllWindows()
+        node.destroy_node()
 
 if __name__ == '__main__':
     main()

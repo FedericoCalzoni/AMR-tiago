@@ -1,4 +1,4 @@
-import rclpy, cv2, time
+import rclpy, cv2, time, sys
 import numpy as np
 from rclpy.node import Node
 from cv_bridge import CvBridge
@@ -21,7 +21,8 @@ class NavigateToBox(Node):
         self.faces_publisher_ = self.create_publisher(BoxInfo, '/box/faces_info', 10)
         self.z_face_publisher_ = self.create_publisher(FaceInfo, '/box/z_face_info', 10)
         self.create_subscription(Odometry, '/ground_truth_odom', self.odom_callback, 10)
-        self.done = self.create_publisher(Bool, '/nav_to_box/done', 10)
+        self.done_publisher = self.create_publisher(Bool, '/nav_to_box/done', 10)
+        self.shutdown_requested = False
         self.subscription = self.create_subscription(Image, '/head_front_camera/rgb/image_raw', self.image_callback, 10)
         self.depth_subscription = self.create_subscription(PointCloud2, '/head_front_camera/depth_registered/points', self.depth_callback, 10)
         self.bridge = CvBridge()
@@ -140,6 +141,8 @@ class NavigateToBox(Node):
             self.moving = False
 
     def image_callback(self, msg):
+        if self.shutdown_requested:
+            return
         cv_image = self.bridge.imgmsg_to_cv2(msg, "bgr8")
         self.img = cv_image
         hsv_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2HSV)
@@ -199,7 +202,9 @@ class NavigateToBox(Node):
                     # Publish faces information - custom message
                     b_c_x, b_c_y = self.publish_faces_info(faces, cv_image)
                     #self.move_head(b_c_x, b_c_y)
-                    self.done.publish(Bool(data=True))
+                    self.done_publisher.publish(Bool(data=True))
+                    self.shutdown_timer = self.create_timer(12.5, self.delayed_shutdown)
+
             elif not self.faces_info_sent:
                 self.box_detected = True
                 self.spin()
@@ -469,14 +474,27 @@ class NavigateToBox(Node):
         
         # Return the plane equation coefficients
         return np.append(normal, d)
+    
+    def delayed_shutdown(self):
+        self.get_logger().info("Delayed shutdown timer triggered - shutting down node")
+        if self.shutdown_timer:
+            self.shutdown_timer.cancel()
+        self.shutdown_requested = True
+        cv2.destroyAllWindows()
+        rclpy.shutdown()
+        sys.exit(0)
 
 
 def main(args=None):
     rclpy.init(args=args)
     node = NavigateToBox()
-    rclpy.spin(node)
-    node.destroy_node()
-    rclpy.shutdown()
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        cv2.destroyAllWindows()
+        node.destroy_node()
 
 if __name__ == '__main__':
     main()

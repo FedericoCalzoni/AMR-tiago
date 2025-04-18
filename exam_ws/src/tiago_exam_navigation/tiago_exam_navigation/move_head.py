@@ -106,13 +106,8 @@ def main(args=None):
     except KeyboardInterrupt:
         pass
     finally:
-        # Close any OpenCV windows
         cv2.destroyAllWindows()
-        
-        # Restore terminal settings
         termios.tcsetattr(sys.stdin, termios.TCSADRAIN, original_settings)
-        
-        # Cleanup
         node.destroy_node()
         rclpy.shutdown()
 

@@ -1,10 +1,11 @@
-import rclpy, time
+import rclpy, time, argparse
 from rclpy.node import Node
 from std_msgs.msg import Bool
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
 class TiagoArmPositionNode(Node):
-    def __init__(self):
+    def __init__(self, input_string):
+        self.input_string = input_string
         super().__init__('tiago_arm_position')
         
         self.done_publisher = self.create_publisher(Bool, '/fold_arm/done', 10)
@@ -47,17 +48,26 @@ class TiagoArmPositionNode(Node):
         return True
 
 def main(args=None):
-    rclpy.init(args=args)
-    node = TiagoArmPositionNode()
-    
-    # Example folded position - customize these values as needed
+    parser = argparse.ArgumentParser(description='ROS2 Shape Publisher Node')
+    parser.add_argument('--input_string', type=str, default='arm',
+                        help='Input string parameter')
+    args, ros_args = parser.parse_known_args()
+    rclpy.init(args=ros_args)
+    node = TiagoArmPositionNode(args.input_string)
+
     zero_position = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-    folded_position = [3.0, 0.0, -3.0, 1.5, 0.0, 0.0, 0.0]
+    folded_position_navigation = [0.0, 0.0, -3.0, 1.5, 0.0, 0.0, 0.0]
+    folded_position_manipulation = [3.0, 0.0, -3.0, 1.5, 0.0, 0.0, 0.0]
+
+    if args.input_string == "nav":
+        folded_position = folded_position_navigation
+    else:
+        folded_position = folded_position_manipulation
+
 
     node.move_arm_to_position(zero_position)
     node.get_logger().info("Moving arm to zero position")
     time.sleep(3.0)
-    # Send the command to fold the arm
     success = node.move_arm_to_position(folded_position)
     
     if success:
