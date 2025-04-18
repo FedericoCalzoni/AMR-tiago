@@ -21,6 +21,8 @@ from builtin_interfaces.msg import Duration
 from control_msgs.action import FollowJointTrajectory
 from rclpy.action import ActionClient
 from time import sleep
+from std_msgs.msg import Bool
+
 
 class TiagoArucoGrasp(Node):
 
@@ -33,6 +35,8 @@ class TiagoArucoGrasp(Node):
         self.pose_pub = self.create_publisher(PoseStamped, "/target_pose_visualization", 10)
         self.ee_pose_pub = self.create_publisher(PoseStamped, "/ee_pose_visualization", 10)
         self.point_pub = self.create_publisher(Point, "target_point", 1)
+        
+        self.done_publisher = self.create_publisher(Bool, '/move_arm/done', 10)
 
 
         self.cam_K = None
@@ -294,6 +298,7 @@ class TiagoArucoGrasp(Node):
                     
             elif self.move_state == "DONE":
                 self.get_logger().info("STATE MACHINE ENDED")
+                self.done_publisher.publish(Bool(data=True))
                 break
             
     def state_machine_PLACE(self):
@@ -327,6 +332,11 @@ class TiagoArucoGrasp(Node):
                     
             elif self.move_state == "DONE":
                 self.get_logger().info("STATE MACHINE ENDED")
+                self.done_publisher.publish(Bool(data=True))
+                
+                # Wait for a moment to ensure the message is sent
+                sleep(1.0)
+                
                 break
 
 def main(args=None):

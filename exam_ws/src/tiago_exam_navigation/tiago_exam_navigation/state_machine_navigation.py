@@ -17,10 +17,8 @@ class StateMachineNavigation(Node):
     def __init__(self):
         super().__init__('tiago_state_controller')
                 
-        self.node_completed = False
         self.done_publisher = self.create_publisher(Bool, '/state_machine_navigation/done', 10)
-        self.state_machine_timer = self.create_timer(0.1, self.is_done)
-
+        
         # Subscription to node termination topics
         self.create_subscription(Bool, '/nav_to_box/done', self.nav_to_box_callback, 10)
         self.create_subscription(Bool, '/align_to_box_face/done', self.align_to_box_face_callback, 10)
@@ -42,12 +40,6 @@ class StateMachineNavigation(Node):
         # Run state machine
         self.get_logger().info('Starting state machine...')
         self.state_machine_timer = self.create_timer(0.1, self.state_machine_step)
-        
-    def is_done(self):
-        if self.node_completed:
-            self.done_publisher.publish(Bool(data=True))
-        else:
-            self.done_publisher.publish(Bool(data=False))
     
     def fold_arm_callback(self, msg):
         if msg.data:
@@ -117,10 +109,16 @@ class StateMachineNavigation(Node):
                 
         elif self.current_state == State.DONE:
             self.get_logger().info("STATE MACHINE COMPLETED")
-            #self.locking_target = self.run_node('tiago_exam_camera', 'target_locked')
-            self.node_completed = True
-            self.state_machine_timer.cancel()
             
+            for i in range(30):
+                self.done_publisher.publish(Bool(data=True))
+                time.sleep(0.1)
+            
+            # Wait for a moment to ensure the message is sent
+            time.sleep(1.0)
+            
+            #self.locking_target = self.run_node('tiago_exam_camera', 'target_locked')
+            self.state_machine_timer.cancel()
         else:
             self.get_logger().error("Unknown state")
 
@@ -128,6 +126,8 @@ def main(args=None):
     rclpy.init(args=args)
     tiago_state_controller = StateMachineNavigation()
     rclpy.spin(tiago_state_controller)
+    tiago_state_controller.get_logger().info("Shutting down state machine navigation")    
+    # Cleanup
     tiago_state_controller.destroy_node()
     rclpy.shutdown()
 
