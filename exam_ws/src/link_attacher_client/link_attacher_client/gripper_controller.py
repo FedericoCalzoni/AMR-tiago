@@ -8,7 +8,7 @@ from rclpy.action import ActionClient
 from linkattacher_msgs.srv import AttachLink, DetachLink
 
 class GripperController(Node):
-    def __init__(self):
+    def __init__(self, model=None):
         super().__init__('gripper_controller')
 
         # Setup gripper action client
@@ -32,8 +32,15 @@ class GripperController(Node):
         # Model & link names
         self.model1 = 'tiago'
         self.link1 = 'gripper_left_finger_link'
-        self.model2 = 'aruco_cube_exam_id582'
         self.link2 = 'link'
+        
+        self.model2 = None
+        
+        if model == '582':
+            self.model2 = 'aruco_cube_exam_id582'
+        elif model == '63':
+            self.model2 = 'aruco_cube_exam_id63'
+         
 
     def control_gripper(self, open):
         """Controls the gripper (open or close) and attaches/detaches the object."""
@@ -89,7 +96,7 @@ class GripperController(Node):
         if success:
             self.get_logger().info("✅ Gripper movement succeeded")
             if open:
-                self.detach()
+                self.detach_all_models()
             else:
                 self.attach()
         else:
@@ -125,24 +132,47 @@ class GripperController(Node):
             self.get_logger().info("✅ Object detached successfully.")
         else:
             self.get_logger().error("❌ Failed to detach object.")
+            
+    def detach_all_models(self):
+        """Detach all possible models to ensure clean state when opening gripper."""
+        self.get_logger().info("🧩 Detaching all potential objects...")
+        
+        # Try to detach model 63
+        temp_model2 = self.model2  # Store current model
+        self.model2 = "aruco_cube_exam_id63"
+        self.detach()
+        
+        # Try to detach model 582
+        self.model2 = "aruco_cube_exam_id582"
+        self.detach()
+        
+        # Restore original model setting
+        self.model2 = temp_model2
 
 def main(args=None):
     parser = argparse.ArgumentParser(description='Gripper controller Node')
-    parser.add_argument('--input_string', type=str, required=True, help='possible values: "OPEN" or "CLOSE"')
+    parser.add_argument('--input_string', type=str, required=True, 
+                        help='possible values: "OPEN", "CLOSE63", or "CLOSE582"')
     parsed_args, other_args = parser.parse_known_args()
     
     rclpy.init(args=other_args)
-    node = GripperController()
-
+    
     command = parsed_args.input_string.strip().upper()
     
     if command == "OPEN":
-        node.control_gripper(open=True)   # Open gripper & detach
-    elif command == "CLOSE":
-        node.control_gripper(open=False)  # Close gripper & attach
+        node = GripperController()  # No specific model needed for open
+        node.control_gripper(open=True)
+    elif command == "CLOSE63":
+        node = GripperController(model="63")
+        node.control_gripper(open=False)
+    elif command == "CLOSE582":
+        node = GripperController(model="582")
+        node.control_gripper(open=False)
     else:
-        node.get_logger().error(f"❌ Invalid input_string: {parsed_args.input_string} (use 'OPEN' or 'CLOSE')")
-
+        print(f"Invalid input_string: {parsed_args.input_string} (use 'OPEN', 'CLOSE63', 'CLOSE582')")
+        rclpy.shutdown()
+        return
+    
     node.destroy_node()
     rclpy.shutdown()
 

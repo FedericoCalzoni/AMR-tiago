@@ -73,8 +73,8 @@ class TiagoArucoGrasp(Node):
             group_name="arm_torso",
             callback_group=callback_group,
         )
-        # self.moveit2.planner_id = "RRTConnectkConfigDefault"
-        self.moveit2.planner_id = "PRMstarkConfigDefault"
+        self.moveit2.planner_id = "RRTConnectkConfigDefault"
+        # self.moveit2.planner_id = "PRMstarkConfigDefault"
         # self.moveit2.planner_id = "TRRTkConfigDefault"
         
         # Action client for controlling gripper
@@ -257,7 +257,7 @@ class TiagoArucoGrasp(Node):
             elif self.move_state == "GRASP":
                 if self.move_to_frame(self.gripper_frame):
                     self.get_logger().info("Grasp position reached, closing gripper")
-                    self.run_node('link_attacher_client', 'gripper_control', args=['--input_string', 'CLOSE'])
+                    self.run_node('link_attacher_client', 'gripper_control', args=['--input_string', 'CLOSE63'])
                     self.move_state = "LIFT"
                 sleep(10.0)
                 self.get_logger().info("Gripper closed, lifting marker")
@@ -291,3 +291,57 @@ def main(args=None):
 
 if __name__ == "__main__":
     main()
+
+# def is_position_within_tolerance(self, actual_pos, target_pos, tolerance):
+#         """Check if the end effector is within the specified tolerance of the target position."""
+#         distance = sum((a - t) ** 2 for a, t in zip(actual_pos, target_pos)) ** 0.5
+#         self.get_logger().info(f"Distance to target: {distance:.4f} m (tolerance: {tolerance:.4f} m)")
+#         return distance <= tolerance
+
+# if self.move_to_frame(self.approach_frame):
+#     ee_tf = self.tf_buffer.lookup_transform(
+#         self.robot_base_frame, 
+#         self.ee_frame, 
+#         rclpy.time.Time(), 
+#         rclpy.duration.Duration(seconds=1)
+#     )
+    
+#     if ee_tf is None:
+#         self.get_logger().error("Could not get end effector transform")
+#         sleep(3.0)
+#         continue
+    
+#     actual_pos = [
+#         ee_tf.transform.translation.x,
+#         ee_tf.transform.translation.y,
+#         ee_tf.transform.translation.z
+#     ]
+    
+#     # Get the target approach frame position
+#     approach_tf = self.tf_buffer.lookup_transform(
+#         self.robot_base_frame, 
+#         self.approach_frame, 
+#         rclpy.time.Time(),
+#         rclpy.duration.Duration(seconds=1)
+#     )
+    
+#     if approach_tf is None:
+#         self.get_logger().error("Could not get approach frame transform")
+#         sleep(3.0)
+#         continue
+        
+#     target_pos = [
+#         approach_tf.transform.translation.x,
+#         approach_tf.transform.translation.y,
+#         approach_tf.transform.translation.z
+#     ]
+    
+#     # Check if we're close enough
+#     position_tolerance = 0.02  # 2 cm tolerance - adjust as needed
+#     if self.is_position_within_tolerance(actual_pos, target_pos, position_tolerance):
+#         self.get_logger().info("Approach position reached within tolerance, moving to GRASP state")
+#         self.move_state = "GRASP"
+#     else:
+#         self.get_logger().warning("Not close enough to approach frame, retrying approach")
+
+# sleep(3.0)
