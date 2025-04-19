@@ -18,6 +18,7 @@ class StateMachineNavigation(Node):
         super().__init__('tiago_state_controller')
                 
         self.done_publisher = self.create_publisher(Bool, '/state_machine_navigation/done', 10)
+        self.done_publisher.publish(Bool(data=False))
         
         # Subscription to node termination topics
         self.create_subscription(Bool, '/nav_to_box/done', self.nav_to_box_callback, 10)
@@ -110,7 +111,7 @@ class StateMachineNavigation(Node):
         elif self.current_state == State.DONE:
             self.get_logger().info("STATE MACHINE COMPLETED")
             
-            for i in range(30):
+            for i in range(3):
                 self.done_publisher.publish(Bool(data=True))
                 time.sleep(0.1)
             

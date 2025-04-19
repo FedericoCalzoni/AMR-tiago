@@ -14,6 +14,7 @@ class TaskManager(Node):
         
         # Subscription to node termination topics
         self.create_subscription(Bool, '/state_machine_navigation/done', self.navigation_callback, 10)
+        self.done_publisher = self.create_publisher(Bool, '/state_machine_navigation/done', 10)
         self.create_subscription(Bool, '/move_arm/done', self.move_arm_callback, 10)
         self.navigation_done = False
         self.move_arm_done = False
@@ -36,27 +37,30 @@ class TaskManager(Node):
     def navigation_callback(self, msg):
         if msg.data == True:
             self.navigation_done = True
+        else:
+            self.navigation_done = False
             
     def move_arm_callback(self, msg):
         if msg.data == True:
             self.move_arm_done = True
             
-    def run_node(self, package, node, args=None):
+    def run_node_subprocess(self, package, node, args=None):
         cmd = ['ros2', 'run', package, node]
 
         if args:
             cmd.extend([str(arg) for arg in args])
 
-        # process = subprocess.Popen(
-        #     cmd,
-        #     stdout=subprocess.PIPE,
-        #     stderr=subprocess.PIPE,
-        #     text=True
-        # )
-        
         process = subprocess.Popen(cmd)
-        
-        # process = subprocess.run(cmd)
+
+        return process
+    
+    def run_node(self, package, node, args=None):
+        cmd = ['ros2', 'run', package, node]
+
+        if args:
+            cmd.extend([str(arg) for arg in args])
+            
+        process = subprocess.run(cmd)
 
         return process
     
@@ -64,88 +68,103 @@ class TaskManager(Node):
         if self.state == 'MOVE_TO_PICK_582':
             if not self.node_launched:
                 self.get_logger().info("MOVE_TO_PICK: Starting navigation to pick box")
-                self.run_node("tiago_exam_navigation", "state_machine_navigation")
+                self.run_node_subprocess("tiago_exam_navigation", "state_machine_navigation")
                 self.node_launched = True
                 
             if self.navigation_done:
                 self.get_logger().info(f"MOVE_TO_PICK: Completed")
                 self.state = 'PICK_CUBE_582'
                 self.node_launched = False
+                self.navigation_done = False
             
         elif self.state == 'PICK_CUBE_582':
             if not self.node_launched:
-                self.navigation_done = False
                 self.get_logger().info("PICK_CUBE_582: Move the arm to pick the cube")
-                self.run_node("tiago_exam_camera", "target_locked", ["582"])
-                self.run_node("tiago_exam_arm", "2_aruco_grasp_pose_broadcaster")
-                self.run_node("tiago_exam_arm", "3_move_arm", args=['--action', 'PICK582'])
+                self.run_node_subprocess("tiago_exam_camera", "target_locked", ["582"])
+                self.run_node_subprocess("tiago_exam_arm", "2_aruco_grasp_pose_broadcaster")
+                self.run_node_subprocess("tiago_exam_arm", "3_move_arm", args=['--action', 'PICK582'])
                 self.node_launched = True
                 
             if self.move_arm_done:
                 self.get_logger().info("Arm movement completed")
                 self.run_node("tiago_exam_navigation", "move_head_to_pose")
-                sleep(5.0) # wait for the head to move
-                self.state = 'TRANSFER_582'
+                self.state = 'MOVE_TO_PLACE_582'
                 self.node_launched = False
         
-        elif self.state == 'TRANSFER_582':
+        elif self.state == 'MOVE_TO_PLACE_582':
             if not self.node_launched:
-                self.get_logger().info("TRANSFER_582: Move tiago to place box")
-                self.run_node("tiago_exam_navigation", "state_machine_navigation")
+                self.get_logger().info("MOVE_TO_PLACE_582: Move tiago to place box")
+                self.run_node_subprocess("tiago_exam_navigation", "state_machine_navigation")
                 self.node_launched = True
-                
+                self.navigation_done = False
+            
             if self.navigation_done:
                 self.get_logger().info("Transfer 582 completed")
-                self.state = 'WAIT_TRANSFER_582'
-                self.node_launched = False
-                
-        elif self.state == 'WAIT_TRANSFER_582':
-            FERMETEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
-            if self.node_completed:
-                self.get_logger().info("Transfer completed")
-                self.node_launched = False
                 self.state = 'PLACE_CUBE_582'
+                self.node_launched = False
             
         elif self.state == 'PLACE_CUBE_582':
-            self.get_logger().info("PLACE_CUBE_582: Move the arm to place the cube")
-            self.run_node("tiago_exam_arm", "3_move_arm", '--action PLACE582')
-            self.state = 'MOVE_TO_PICK_63'
+            if not self.node_launched:
+                self.get_logger().info("PLACE_CUBE_582: Move the arm to place the cube")
+                self.run_node_subprocess("tiago_exam_arm", "3_move_arm", args=['--action', 'PLACE582'])
+                self.node_launched = True
+                
+            if self.move_arm_done:
+                self.get_logger().info("Arm movement completed")
+                self.state = 'MOVE_TO_PICK_63'
+                self.node_launched = False
         
         elif self.state == 'MOVE_TO_PICK_63':
             if not self.node_launched:
                 self.get_logger().info("MOVE_TO_PICK_63: Starting navigation to pick box")
+                self.run_node_subprocess("tiago_exam_navigation", "state_machine_navigation")
                 self.node_launched = True
-                self.node_completed = False
-                self.run_node("tiago_exam_navigation", "state_machine_navigation")
-            elif self.node_completed:
-                self.get_logger().info("Navigation to pick 63 completed")
+                self.navigation_done = False
+                
+            if self.navigation_done:
+                self.get_logger().info(f"MOVE_TO_PICK_63: Completed")
+                self.state = 'PICK_CUBE_582'
                 self.node_launched = False
-                self.state = 'PICK_CUBE_63'
             
         elif self.state == 'PICK_CUBE_63':
-            self.get_logger().info("PICK_CUBE_63: Move the arm to pick the cube")
-            self.run_node("tiago_exam_arm", "3_move_arm", '--action PICK63')
-            self.state = 'TRANSFER_63'
-            
-        elif self.state == 'TRANSFER_63':
             if not self.node_launched:
-                self.get_logger().info("TRANSFER_63: Move tiago to place box")
+                self.get_logger().info("PICK_CUBE_63: Move the arm to pick the cube")
+                self.run_node_subprocess("tiago_exam_camera", "target_locked", ["63"])
+                self.run_node_subprocess("tiago_exam_arm", "2_aruco_grasp_pose_broadcaster")
+                self.run_node_subprocess("tiago_exam_arm", "3_move_arm", args=['--action', 'PICK63'])
                 self.node_launched = True
-                self.node_completed = False
-                self.run_node("tiago_exam_navigation", "state_machine_navigation")
-            elif self.node_completed:
-                self.get_logger().info("Transfer 63 completed")
+                
+            if self.move_arm_done:
+                self.get_logger().info("Arm movement completed")
+                self.run_node("tiago_exam_navigation", "move_head_to_pose")
+                self.state = 'MOVE_TO_PLACE_63'
                 self.node_launched = False
+            
+        elif self.state == 'MOVE_TO_PLACE_63':
+            if not self.node_launched:
+                self.get_logger().info("MOVE_TO_PLACE_63: Move tiago to place box")
+                self.run_node_subprocess("tiago_exam_navigation", "state_machine_navigation")
+                self.node_launched = True
+            
+            if self.node_completed:
+                self.get_logger().info("Transfer 63 completed")
                 self.state = 'PLACE_CUBE_63'
+                self.node_launched = False
             
         elif self.state == 'PLACE_CUBE_63':
-            self.get_logger().info("PLACE_CUBE_63: Move the arm to place the cube")
-            self.run_node("tiago_exam_arm", "3_move_arm", '--action PLACE63')
-            self.state = 'RETURN_HOME'
+            if not self.node_launched:
+                self.get_logger().info("PLACE_CUBE_63: Move the arm to place the cube")
+                self.run_node_subprocess("tiago_exam_arm", "3_move_arm", args=['--action', 'PLACE63'])
+                self.node_launched = True
+                
+            if self.move_arm_done:
+                self.get_logger().info("Arm movement completed")
+                self.state = 'RETURN_HOME'
+                self.node_launched = False
             
         elif self.state == 'RETURN_HOME':
             self.get_logger().info("RETURN_HOME: Finishing the task")
-            self.run_node("tiago_exam_navigation", "navigate_to_pose", '--goal 0.0 -1.0 0.0')
+            self.run_node_subprocess("tiago_exam_navigation", "navigate_to_pose", '--goal 0.0 -1.0 0.0')
             self.state = 'DONE'
             
         elif self.state == 'DONE':
