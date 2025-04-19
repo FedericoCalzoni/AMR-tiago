@@ -8,11 +8,15 @@ from tf2_ros import TransformBroadcaster
 from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
 from PyKDL import Frame, Vector, Rotation
+from std_msgs.msg import Bool
 
 
 class ArucoGraspBroadcaster(Node):
     def __init__(self):
         super().__init__('aruco_subscriber')
+        
+        self.create_subscription(Bool, '/move_arm/done', self.move_arm_callback, 10)
+        self.move_arm_done = False
         
         self.subscription = self.create_subscription(
             TransformStamped, 
@@ -134,7 +138,8 @@ class ArucoGraspBroadcaster(Node):
         
         # Check if x-axis of frame_target is mostly aligned with vertical world axis
         x_axis = frame_target.M.UnitX()  # Extract x unit vector
-        vertical_alignment = abs(x_axis[2])  # z-component represents vertical alignment
+        y_axis = frame_target.M.UnitY()
+        vertical_alignment = abs(y_axis[2])  # z-component represents vertical alignment
         
         # Check if the alignment is within the threshold
         if vertical_alignment > self.max_tilt:
@@ -250,12 +255,21 @@ class ArucoGraspBroadcaster(Node):
         
         # Publish the marker array
         self.marker_publisher.publish(marker_array)
-
+        
+    def move_arm_callback(self, msg):
+        if msg.data == True:
+            self.move_arm_done = True
 
 def main(args=None):
     rclpy.init(args=args)
     aruco_node = ArucoGraspBroadcaster()
-    rclpy.spin(aruco_node)
+    
+    while not aruco_node.move_arm_done:
+        rclpy.spin_once(aruco_node, timeout_sec=0.1)
+        
+    aruco_node.get_logger().info("Received move_arm/done message. Shutting down node.")
+    
+    # Clean up
     aruco_node.destroy_node()
     rclpy.shutdown()
 

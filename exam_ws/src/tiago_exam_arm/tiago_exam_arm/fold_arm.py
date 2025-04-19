@@ -61,8 +61,8 @@ def main(args=None):
     zero_position = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
     folded_position_navigation = [0.0, 0.0, -3.0, 1.5, 0.0, 0.0, 0.0]
     #folded_position_manipulation = [0.85, 0.85, -1.0, 1.63, 0.93, -1.16, -1.09]
-    folded_position_manipulation = [1.64, 0.31, 0.55, 1.12, -0.90, 0.92, -0.50]
-    #folded_position_manipulation = [1.02, 0.50, -1.06, 0.52, 0.98, -0.22, -0.34]
+    # folded_position_manipulation = [1.64, 0.31, 0.55, 1.12, -0.90, 0.92, -0.50]
+    folded_position_manipulation = [1.02, 0.50, -1.06, 0.52, 0.98, -0.22, -0.34]
     
     if args.input_string == "nav":
         folded_position = folded_position_navigation
