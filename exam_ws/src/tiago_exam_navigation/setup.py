@@ -41,22 +41,12 @@ setup(
             
             # Utilities
             'navigate_to_pose = tiago_exam_navigation.navigate_to_pose:main',
-            
-            # Detect Second Pose 
-            'detect_blue_block = tiago_exam_navigation.detect_blue_block:main',
-            'move_to_block = tiago_exam_navigation.move_to_block:main',
-            'detect_blue_block_plus= tiago_exam_navigation.detect_blue_box_plus:main', 
-            'test_detect = tiago_exam_navigation.test_detect:main',
-            'test_detect_plus = tiago_exam_navigation.test_detect_plus:main',
-            'detect_test = tiago_exam_navigation.detect_test:main',
-            'detect_face_test = tiago_exam_navigation.detect_face_test:main',
-            'detect_move = tiago_exam_navigation.detect_move:main',
-            'detect_move_auto = tiago_exam_navigation.detect_move_auto:main',
-            'clever_detect_move = tiago_exam_navigation.clever_det_move:main',
-            'camera_depth = tiago_exam_navigation.camera_depth:main',
-            'camera_clever = tiago_exam_navigation.camera_clever:main',
-            'last = tiago_exam_navigation.last:main',
-            'last_plus = tiago_exam_navigation.last_plus:main',
+            'move_head = tiago_exam_navigation.move_head:main',
+            'navigate_to_box = tiago_exam_navigation.navigate_to_box:main',
+            'align_to_box_face = tiago_exam_navigation.align_to_box_face:main',
+
+            # State machine
+            'state_machine_navigation = tiago_exam_navigation.state_machine_navigation:main',
         ],
     },
 )

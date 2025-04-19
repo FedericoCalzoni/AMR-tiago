@@ -36,14 +36,8 @@ class TiagoArucoGrasp(Node):
         self.ee_pose_pub = self.create_publisher(PoseStamped, "/ee_pose_visualization", 10)
         self.point_pub = self.create_publisher(Point, "target_point", 1)
         
-       
-        # Rename the publisher to a more specific name for integration
-        self.done_publisher = self.create_publisher(Bool, '/state_machine_arm/done', 10)
-        
-       
-        # Add subscription to receive start command from master state machine
-        self.create_subscription(Bool, '/start_arm_state_machine', self.start_callback, 10)
-        self.started = False  # Flag to indicate if the state machine has started
+        self.done_publisher = self.create_publisher(Bool, '/move_arm/done', 10)
+
 
         self.cam_K = None
         self.cam_D = None
@@ -61,7 +55,6 @@ class TiagoArucoGrasp(Node):
         if self.action == None:
             raise ValueError("Action not specified. Use --action argument to specify the action: PICK63, PICK582, PLACE63, PLACE582")
 
-        
         # Create callback group that allows execution of callbacks in parallel without restrictions
         callback_group = ReentrantCallbackGroup()
 
@@ -113,17 +106,8 @@ class TiagoArucoGrasp(Node):
         executor_thread = Thread(target=executor.spin, daemon=True, args=())
         executor_thread.start()
         
-        
-        # Not starting the check automatically but waiting for the start command
-        self.get_logger().info('Arm state machine initialized and waiting for start command')
+        self.create_timer(1.0, self.check_and_start)
                 
-    def start_callback(self, msg):
-        """Callback per avviare la state machine quando riceve un messaggio di start"""
-        if msg.data and not self.started:
-            self.get_logger().info('Received start command, beginning arm state machine')
-            self.started = True
-            self.create_timer(1.0, self.check_and_start)
-        
     def check_and_start(self):
         """Check if required frames are available and start the state machine when they are"""
         self.get_logger().info(f"Checking for required frames...")
@@ -150,7 +134,7 @@ class TiagoArucoGrasp(Node):
             self.get_logger().warn(f"Not all frames available yet: {e}")
             self.get_logger().info("Will check again in 1 second...")
        
-    
+        
     def run_node(self, package, node, args=None):
         cmd = ['ros2', 'run', package, node]
 
@@ -313,20 +297,8 @@ class TiagoArucoGrasp(Node):
                 sleep(3.0)
                     
             elif self.move_state == "DONE":
-                self.get_logger().info("ARM STATE MACHINE ENDED")
-                
-
-                # Pubblish repeatedly the done message to ensure it is received
-                for i in range(50):  # Repaet the message multiple times to ensure reception
-                    done_msg = Bool()
-                    done_msg.data = True
-                    self.done_publisher.publish(done_msg)
-                    sleep(0.05)
-                
-                # Reset the state to allow restarts
-                self.started = False
-                self.move_state = "INIT"
-                
+                self.get_logger().info("STATE MACHINE ENDED")
+                self.done_publisher.publish(Bool(data=True))
                 break
             
     def state_machine_PLACE(self):
@@ -359,18 +331,11 @@ class TiagoArucoGrasp(Node):
                 sleep(3.0)
                     
             elif self.move_state == "DONE":
-                self.get_logger().info("ARM STATE MACHINE ENDED")
+                self.get_logger().info("STATE MACHINE ENDED")
+                self.done_publisher.publish(Bool(data=True))
                 
-                # Publish repeatedly the done message to ensure it is received
-                for i in range(50):  # Repeat the message multiple times to ensure reception
-                    done_msg = Bool()
-                    done_msg.data = True
-                    self.done_publisher.publish(done_msg)
-                    sleep(0.05)
-                
-                # Reset the state to allow restarts
-                self.started = False
-                self.move_state = "INIT"
+                # Wait for a moment to ensure the message is sent
+                sleep(1.0)
                 
                 break
 
