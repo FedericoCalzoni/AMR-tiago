@@ -10,11 +10,16 @@ from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 from geometry_msgs.msg import TransformStamped
 from scipy.spatial.transform import Rotation as R
 from tf2_ros import TransformBroadcaster
+from std_msgs.msg import Bool
+
 
 class ArucoCubeDetection(Node):
 
     def __init__(self, target_id):
         super().__init__('image_subscriber')
+        
+        self.create_subscription(Bool, '/move_arm/done', self.move_arm_callback, 10)
+        self.move_arm_done = False
         
         if target_id not in [582, 63]:
             raise ValueError("Invalid target ID. Must be either 582 or 63.")
@@ -280,7 +285,9 @@ class ArucoCubeDetection(Node):
         self.aruco_publisher.publish(transform_msg)
         # self.get_logger().info(f"Published transform for ID {marker_id}")
         
-        
+    def move_arm_callback(self, msg):
+        if msg.data == True:
+            self.move_arm_done = True
         
 def main(args=None):
     
@@ -294,10 +301,16 @@ def main(args=None):
     
     locking_target = ArucoCubeDetection(target_id=parsed_args.target_id)
 
-    rclpy.spin(locking_target)
+    # Simple loop that checks the move_arm_done flag
+    while not locking_target.move_arm_done:
+        rclpy.spin_once(locking_target, timeout_sec=0.1)
+    
+    locking_target.get_logger().info("Received move_arm/done message. Shutting down node.")
+    
+    # Clean up resources
+    cv2.destroyAllWindows()
     locking_target.destroy_node()
     rclpy.shutdown()
-
 
 if __name__ == '__main__':
     main()

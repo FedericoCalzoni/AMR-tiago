@@ -42,6 +42,7 @@ setup(
             # Utilities
             'navigate_to_pose = tiago_exam_navigation.navigate_to_pose:main',
             'move_head = tiago_exam_navigation.move_head:main',
+            'move_head_to_pose = tiago_exam_navigation.move_head_to_pose:main',
             'navigate_to_box = tiago_exam_navigation.navigate_to_box:main',
             'align_to_box_face = tiago_exam_navigation.align_to_box_face:main',
 

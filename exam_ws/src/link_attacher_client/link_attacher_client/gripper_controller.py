@@ -159,19 +159,24 @@ def main(args=None):
     
     command = parsed_args.input_string.strip().upper()
     
-    if command == "OPEN":
-        node = GripperController()  # No specific model needed for open
-        node.control_gripper(open=True)
-    elif command == "CLOSE63":
-        node = GripperController(model="63")
-        node.control_gripper(open=False)
-    elif command == "CLOSE582":
-        node = GripperController(model="582")
-        node.control_gripper(open=False)
-    else:
-        print(f"Invalid input_string: {parsed_args.input_string} (use 'OPEN', 'CLOSE63', 'CLOSE582')")
-        rclpy.shutdown()
-        return
+    success = False
+    while not success:
+        if command == "OPEN":
+            node = GripperController()  # No specific model needed for open
+            success = node.control_gripper(open=True)
+        elif command == "CLOSE63":
+            node = GripperController(model="63")
+            success = node.control_gripper(open=False)
+        elif command == "CLOSE582":
+            node = GripperController(model="582")
+            success = node.control_gripper(open=False)
+        else:
+            print(f"Invalid input_string: {parsed_args.input_string} (use 'OPEN', 'CLOSE63', 'CLOSE582')")
+            rclpy.shutdown()
+            return
+        
+        if not success:
+            node.get_logger().error("❌ Failed to open gripper, retrying...")
     
     node.destroy_node()
     rclpy.shutdown()

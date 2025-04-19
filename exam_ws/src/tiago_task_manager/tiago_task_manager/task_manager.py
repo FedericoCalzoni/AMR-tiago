@@ -2,7 +2,7 @@ import rclpy
 from rclpy.node import Node
 import subprocess
 from std_msgs.msg import Bool
-import time
+from time import sleep
 from threading import Thread
 from rclpy.callback_groups import ReentrantCallbackGroup
 
@@ -74,6 +74,7 @@ class TaskManager(Node):
             
         elif self.state == 'PICK_CUBE_582':
             if not self.node_launched:
+                self.navigation_done = False
                 self.get_logger().info("PICK_CUBE_582: Move the arm to pick the cube")
                 self.run_node("tiago_exam_camera", "target_locked", ["582"])
                 self.run_node("tiago_exam_arm", "2_aruco_grasp_pose_broadcaster")
@@ -82,17 +83,24 @@ class TaskManager(Node):
                 
             if self.move_arm_done:
                 self.get_logger().info("Arm movement completed")
+                self.run_node("tiago_exam_navigation", "move_head_to_pose")
+                sleep(5.0) # wait for the head to move
                 self.state = 'TRANSFER_582'
                 self.node_launched = False
         
         elif self.state == 'TRANSFER_582':
-            self.get_logger().info("TRANSFER_582: Move tiago to place box")
-            self.node_launched = False  # Reset for new navigation
-            self.node_completed = False
-            self.run_node("tiago_exam_navigation", "state_machine_navigation")
-            self.state = 'WAIT_TRANSFER_582'
-            
+            if not self.node_launched:
+                self.get_logger().info("TRANSFER_582: Move tiago to place box")
+                self.run_node("tiago_exam_navigation", "state_machine_navigation")
+                self.node_launched = True
+                
+            if self.navigation_done:
+                self.get_logger().info("Transfer 582 completed")
+                self.state = 'WAIT_TRANSFER_582'
+                self.node_launched = False
+                
         elif self.state == 'WAIT_TRANSFER_582':
+            FERMETEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
             if self.node_completed:
                 self.get_logger().info("Transfer completed")
                 self.node_launched = False

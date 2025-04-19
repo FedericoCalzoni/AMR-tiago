@@ -146,7 +146,8 @@ class ArucoGraspBroadcaster(Node):
         if self.good_frame_target is not None:
             frame_target = self.good_frame_target
         else:
-            raise ValueError("Frame target not valid, not publishing frames.")
+            self.get_logger().warn("No good frame target found, not publishing.")
+            return
                     
         self.publish_frame(frame_target, self.frame_target_name)
         
