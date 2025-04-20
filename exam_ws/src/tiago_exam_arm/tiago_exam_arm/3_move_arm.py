@@ -38,7 +38,6 @@ class TiagoArucoGrasp(Node):
         
         self.done_publisher = self.create_publisher(Bool, '/move_arm/done', 10)
 
-
         self.cam_K = None
         self.cam_D = None
         self.t_gripper_frame_to_camera = None
@@ -57,7 +56,6 @@ class TiagoArucoGrasp(Node):
 
         # Create callback group that allows execution of callbacks in parallel without restrictions
         callback_group = ReentrantCallbackGroup()
-
 
         JOINT_NAMES = [
             "torso_lift_joint",
@@ -106,9 +104,16 @@ class TiagoArucoGrasp(Node):
         executor_thread = Thread(target=executor.spin, daemon=True, args=())
         executor_thread.start()
         
-        self.create_timer(1.0, self.check_and_start)
+        # Start the appropriate process based on action type
+        if self.action.startswith("PICK"):
+            self.create_timer(1.0, self.check_and_start_pick)
+        elif self.action.startswith("PLACE"):
+            # For PLACE actions, start immediately without checking transforms
+            self.create_timer(1.0, self.state_machine_PLACE)
+        else:
+            raise ValueError("Invalid action specified. Use PICK63, PICK582, PLACE63, or PLACE582.")
                 
-    def check_and_start(self):
+    def check_and_start_pick(self):
         """Check if required frames are available and start the state machine when they are"""
         self.get_logger().info(f"Checking for required frames...")
         
@@ -122,20 +127,16 @@ class TiagoArucoGrasp(Node):
                 )
             
             self.get_logger().info("All required frames are available! Starting the state machine.")
-            
-            if self.action == "PICK63" or self.action == "PICK582":
-                self.create_timer(1.0, self.state_machine_PICK)
-            elif self.action == "PLACE63" or self.action == "PLACE582":
-                self.create_timer(1.0, self.state_machine_PLACE)
-            else:
-                raise ValueError("Invalid action specified. Use PICK63, PICK582, PLACE63, or PLACE582.")
+                
+            # Start the pick state machine
+            self.create_timer(1.0, self.state_machine_PICK)
             
         except Exception as e:
             self.get_logger().warn(f"Not all frames available yet: {e}")
             self.get_logger().info("Will check again in 1 second...")
        
         
-    def run_node(self, package, node, args=None):
+    def run_node_subprocess(self, package, node, args=None):
         cmd = ['ros2', 'run', package, node]
 
         if args:
@@ -257,10 +258,10 @@ class TiagoArucoGrasp(Node):
             
             if self.move_state == "INIT":
                 # Open gripper before approaching
-                self.run_node('link_attacher_client', 'gripper_control', args=['--input_string', 'OPEN'])
+                self.run_node_subprocess('link_attacher_client', 'gripper_control', args=['--input_string', 'OPEN'])
                 sleep(3.0)
                 # move arm to a confortable positon
-                self.navigation_process = self.run_node('tiago_exam_arm', 'fold_arm')
+                self.navigation_process = self.run_node('tiago_exam_arm', 'fold_arm', args=['1.02',' 0.50', '-1.06',' 0.52', '0.98', '-0.22', '-0.34'])
                 sleep(10.0)
                 self.move_state = "APPROACH"
                 
@@ -275,9 +276,9 @@ class TiagoArucoGrasp(Node):
                     self.get_logger().info("Grasp position reached, closing gripper")
                     
                     if self.action == "PICK63":
-                        self.run_node('link_attacher_client', 'gripper_control', args=['--input_string', 'CLOSE63'])
+                        self.run_node_subprocess('link_attacher_client', 'gripper_control', args=['--input_string', 'CLOSE63'])
                     elif self.action == "PICK582":
-                        self.run_node('link_attacher_client', 'gripper_control', args=['--input_string', 'CLOSE582'])
+                        self.run_node_subprocess('link_attacher_client', 'gripper_control', args=['--input_string', 'CLOSE582'])
                     else:
                         raise ValueError("Invalid action specified. Use PICK63 or PICK582.")
                     self.move_state = "LIFT"
@@ -313,13 +314,13 @@ class TiagoArucoGrasp(Node):
                 self.move_state = "HOVER_THE_TABLE"
                 
             elif self.move_state == "HOVER_THE_TABLE":
-                self.navigation_process = self.run_node('tiago_exam_arm', 'fold_arm')
+                self.navigation_process = self.run_node('tiago_exam_arm', 'fold_arm', args=['1.02',' 0.50', '-1.06',' 0.52', '0.98', '-0.22', '-0.34'])
                 sleep(10.0)
                 self.move_state = "RELEASE"
                 sleep(3.0)
                 
             elif self.move_state == "RELEASE":
-                self.run_node('link_attacher_client', 'gripper_control', args=['--input_string', 'OPEN'])
+                self.run_node_subprocess('link_attacher_client', 'gripper_control', args=['--input_string', 'OPEN'])
                 self.move_state = "LIFT"
                 sleep(10.0)
                 self.get_logger().info("Gripper open, lifting arm")

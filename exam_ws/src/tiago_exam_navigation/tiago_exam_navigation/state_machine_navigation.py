@@ -54,7 +54,7 @@ class StateMachineNavigation(Node):
         if msg.data:
             self.alignment_to_face_terminated = True
 
-    def run_node(self, package, node, input = ""):
+    def run_node_subprocess(self, package, node, input = ""):
         # Format: ros2 run <package_name> <node_executable>
         cmd = ['ros2', 'run', package, node]
         if input:
@@ -68,6 +68,16 @@ class StateMachineNavigation(Node):
         )
         return process
     
+    def run_node(self, package, node, args=None):
+        cmd = ['ros2', 'run', package, node]
+
+        if args:
+            cmd.extend([str(arg) for arg in args])
+            
+        process = subprocess.run(cmd)
+
+        return process
+    
     def state_machine_step(self):
         #self.get_logger().info(f"Current state: {self.current_state.name}")
 
@@ -75,7 +85,7 @@ class StateMachineNavigation(Node):
             # Fold the arm
             if not self.node_launched:
                 self.get_logger().info("Folding arm...")
-                self.navigation_process = self.run_node('tiago_exam_arm', 'fold_arm', '--in nav')
+                self.navigation_process = self.run_node('tiago_exam_arm', 'fold_arm')
                 self.node_launched = True
                 
             if self.node_termination:
@@ -87,7 +97,7 @@ class StateMachineNavigation(Node):
             # Look for the box
             if not self.node_launched:
                 self.get_logger().info("Looking for box...")
-                self.navigation_process = self.run_node('tiago_exam_navigation', 'navigate_to_box')
+                self.navigation_process = self.run_node_subprocess('tiago_exam_navigation', 'navigate_to_box')
                 self.node_launched = True
                 
             if self.box_detection_terminated:
@@ -99,7 +109,7 @@ class StateMachineNavigation(Node):
             # Align to the detected box
             if not self.node_launched:
                 self.get_logger().info("Aligning to box face...")
-                self.align_process = self.run_node('tiago_exam_navigation', 'align_to_box_face')
+                self.align_process = self.run_node_subprocess('tiago_exam_navigation', 'align_to_box_face')
                 self.node_launched = True
                 
             if self.alignment_to_face_terminated:
