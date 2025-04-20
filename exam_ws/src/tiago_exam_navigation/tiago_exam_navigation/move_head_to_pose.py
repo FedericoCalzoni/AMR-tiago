@@ -109,17 +109,38 @@ def main(args=None):
         except ValueError:
             print("Invalid arguments. Usage: script.py pan_angle tilt_angle")
             rclpy.shutdown()
-            return
+            return 1
     
-    node = MoveHead(pan, tilt)
-    
+    max_attempts = 3
+    attempt = 0
     success = False
-    while not success:
+    
+    while not success and attempt < max_attempts:
+        attempt += 1
+        
+        if attempt > 1:
+            print(f"Retry attempt {attempt}/{max_attempts}...")
+            # Create a new node for each attempt
+            rclpy.shutdown()
+            rclpy.init(args=args)
+            
+        node = MoveHead(pan, tilt)
+        
+        # Wait for up to 10 seconds for completion
         success = node.wait_for_completion(timeout_sec=10.0)
         
-    # Cleanup
-    node.destroy_node()
+        # If we timed out, destroy the node and try again
+        if not success:
+            node.get_logger().warn(f"Attempt {attempt} failed, " + 
+                                  ("retrying..." if attempt < max_attempts else "giving up."))
+            node.destroy_node()
+        else:
+            # Clean up on success
+            node.destroy_node()
+            
+    # Return exit code based on success
     rclpy.shutdown()
+    return 0 if success else 1
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())

@@ -151,6 +151,17 @@ class TiagoArucoGrasp(Node):
 
         return process
     
+    def run_node(self, package, node, args=None):
+        cmd = ['ros2', 'run', package, node]
+
+        if args:
+            cmd.extend([str(arg) for arg in args])
+            
+        process = subprocess.run(cmd)
+
+        return process
+    
+    
     def move_to_pose(self, pos, quat):
         try:
             self.moveit2.move_to_pose(position=pos, quat_xyzw=quat)
@@ -326,18 +337,14 @@ class TiagoArucoGrasp(Node):
                 self.get_logger().info("Gripper open, lifting arm")
                 
             elif self.move_state == "LIFT":
-                self.navigation_process = self.run_node('tiago_exam_arm', 'fold_arm')
-                self.get_logger().info("LIFT position reached, moving to TRANSPORT state")
-                self.move_state = "DONE"
+                if self.move_to_pose(pos=self.default_pose['Position'], quat=self.default_pose['Orientation']):
+                    self.get_logger().info("LIFT position reached")
+                    self.move_state = "DONE"
                 sleep(3.0)
                     
             elif self.move_state == "DONE":
                 self.get_logger().info("STATE MACHINE ENDED")
                 self.done_publisher.publish(Bool(data=True))
-                
-                # Wait for a moment to ensure the message is sent
-                sleep(1.0)
-                
                 break
 
 def main(args=None):
