@@ -141,6 +141,8 @@ class ArucoGraspBroadcaster(Node):
         y_axis = frame_target.M.UnitY()
         vertical_alignment = abs(y_axis[2])  # z-component represents vertical alignment
         
+        self.publish_frame(frame_target, self.frame_target_name)
+        
         # Check if the alignment is within the threshold
         if vertical_alignment > (1-self.max_tilt):
             self.get_logger().warn(f"Frame not vertical:{str(vertical_alignment)}")
@@ -154,7 +156,6 @@ class ArucoGraspBroadcaster(Node):
             self.get_logger().warn("No good frame target found, not publishing.")
             return
                     
-        self.publish_frame(frame_target, self.frame_target_name)
         
         # Calculate pre-grasp approach frame
         frame_approach = frame_target * Frame(Rotation(), Vector(0, 0, 0.5))

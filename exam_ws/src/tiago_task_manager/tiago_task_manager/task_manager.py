@@ -22,7 +22,7 @@ class TaskManager(Node):
         callback_group = ReentrantCallbackGroup()
         
         self.state = 'MOVE_TO_PICK_582'
-        # self.state = 'PICK_CUBE_582'
+        #self.state = 'PICK_CUBE_63'
         
         # Setup executor for background tasks
         executor = rclpy.executors.MultiThreadedExecutor(4)
@@ -131,10 +131,11 @@ class TaskManager(Node):
         elif self.state == 'PICK_CUBE_63':
             if not self.node_launched:
                 self.get_logger().info("PICK_CUBE_63: Move the arm to pick the cube")
+                self.node_launched = True
+                self.move_arm_done = False
                 self.run_node_subprocess("tiago_exam_camera", "target_locked", ["63"])
                 self.run_node_subprocess("tiago_exam_arm", "2_aruco_grasp_pose_broadcaster")
                 self.run_node_subprocess("tiago_exam_arm", "3_move_arm", args=['--action', 'PICK63'])
-                self.node_launched = True
                 
             if self.move_arm_done:
                 self.get_logger().info("Arm movement completed")
@@ -147,8 +148,9 @@ class TaskManager(Node):
                 self.get_logger().info("MOVE_TO_PLACE_63: Move tiago to place box")
                 self.run_node_subprocess("tiago_exam_navigation", "state_machine_navigation")
                 self.node_launched = True
+                self.navigation_done = False
             
-            if self.node_completed:
+            if self.navigation_done:
                 self.get_logger().info("Transfer 63 completed")
                 self.state = 'PLACE_CUBE_63'
                 self.node_launched = False
@@ -156,8 +158,9 @@ class TaskManager(Node):
         elif self.state == 'PLACE_CUBE_63':
             if not self.node_launched:
                 self.get_logger().info("PLACE_CUBE_63: Move the arm to place the cube")
-                self.run_node_subprocess("tiago_exam_arm", "3_move_arm", args=['--action', 'PLACE63'])
                 self.node_launched = True
+                self.move_arm_done = False
+                self.run_node_subprocess("tiago_exam_arm", "3_move_arm", args=['--action', 'PLACE63'])
                 
             if self.move_arm_done:
                 self.get_logger().info("Arm movement completed")
