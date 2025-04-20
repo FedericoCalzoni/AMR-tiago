@@ -80,14 +80,15 @@ class TaskManager(Node):
         elif self.state == 'PICK_CUBE_582':
             if not self.node_launched:
                 self.get_logger().info("PICK_CUBE_582: Move the arm to pick the cube")
+                self.move_arm_done = False
+                self.node_launched = True
                 self.run_node_subprocess("tiago_exam_camera", "target_locked", ["582"])
                 self.run_node_subprocess("tiago_exam_arm", "2_aruco_grasp_pose_broadcaster")
                 self.run_node_subprocess("tiago_exam_arm", "3_move_arm", args=['--action', 'PICK582'])
-                self.node_launched = True
                 
             if self.move_arm_done:
                 self.get_logger().info("Arm movement completed")
-                self.run_node("tiago_exam_navigation", "move_head_to_pose")
+                self.run_node("tiago_exam_navigation", "move_head_to_pose", args=['0.0', '-0.2'])
                 self.state = 'MOVE_TO_PLACE_582'
                 self.node_launched = False
         
@@ -106,8 +107,9 @@ class TaskManager(Node):
         elif self.state == 'PLACE_CUBE_582':
             if not self.node_launched:
                 self.get_logger().info("PLACE_CUBE_582: Move the arm to place the cube")
-                self.run_node_subprocess("tiago_exam_arm", "3_move_arm", args=['--action', 'PLACE582'])
                 self.node_launched = True
+                self.move_arm_done = False
+                self.run_node_subprocess("tiago_exam_arm", "3_move_arm", args=['--action', 'PLACE582'])
                 
             if self.move_arm_done:
                 self.get_logger().info("Arm movement completed")
@@ -123,7 +125,7 @@ class TaskManager(Node):
                 
             if self.navigation_done:
                 self.get_logger().info(f"MOVE_TO_PICK_63: Completed")
-                self.state = 'PICK_CUBE_582'
+                self.state = 'PICK_CUBE_63'
                 self.node_launched = False
             
         elif self.state == 'PICK_CUBE_63':
@@ -136,7 +138,7 @@ class TaskManager(Node):
                 
             if self.move_arm_done:
                 self.get_logger().info("Arm movement completed")
-                self.run_node("tiago_exam_navigation", "move_head_to_pose")
+                self.run_node("tiago_exam_navigation", "move_head_to_pose", args=['0.0', '-0.2'])
                 self.state = 'MOVE_TO_PLACE_63'
                 self.node_launched = False
             
