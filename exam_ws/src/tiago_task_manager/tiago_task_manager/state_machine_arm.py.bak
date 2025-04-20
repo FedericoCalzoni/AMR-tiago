@@ -362,11 +362,11 @@ class TiagoArucoGrasp(Node):
                 self.get_logger().info("ARM STATE MACHINE ENDED")
                 
                 # Publish repeatedly the done message to ensure it is received
-                for i in range(50):  # Repeat the message multiple times to ensure reception
+                for i in range(3):  # Repeat the message multiple times to ensure reception
                     done_msg = Bool()
                     done_msg.data = True
                     self.done_publisher.publish(done_msg)
-                    sleep(0.05)
+                    sleep(0.1)
                 
                 # Reset the state to allow restarts
                 self.started = False
