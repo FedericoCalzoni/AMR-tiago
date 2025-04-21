@@ -9,3 +9,6 @@ ctrl-a <number> change tab
 Ctrl-a "        horizontal split
 Ctrl-a %        vertical split
 Ctrl-a &        kill everything
+
+
+ros2 topic pub /nav_to_box/done std_msgs/msg/Bool "{data: true}"

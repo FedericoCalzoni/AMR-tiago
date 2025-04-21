@@ -15,8 +15,11 @@ class ArucoGraspBroadcaster(Node):
     def __init__(self):
         super().__init__('aruco_subscriber')
         
-        self.create_subscription(Bool, '/move_arm/done', self.move_arm_callback, 10)
+        self.create_subscription(Bool, '/move_arm/done', self.move_arm_done_callback, 10)
+        self.create_subscription(Bool, '/move_arm/get_frames', self.move_arm_get_frames_callback, 10)
+
         self.move_arm_done = False
+        self.change_frame = True
         
         self.subscription = self.create_subscription(
             TransformStamped, 
@@ -143,18 +146,26 @@ class ArucoGraspBroadcaster(Node):
         
         self.publish_frame(frame_target, self.frame_target_name)
         
-        # Check if the alignment is within the threshold
-        if vertical_alignment > (1-self.max_tilt):
-            self.get_logger().warn(f"Frame not vertical:{str(vertical_alignment)}")
-            # Not aligned enough, don't publish frames
+        if self.change_frame:
+            # Check if the alignment is within the threshold
+            if vertical_alignment > (1-self.max_tilt):
+                self.get_logger().warn(f"Frame not vertical:{str(vertical_alignment)}")
+                # Not aligned enough, don't publish frames
+            else:
+                self.good_frame_target = frame_target
+            
+            if self.good_frame_target is not None:
+                frame_target = self.good_frame_target
+            else:
+                self.get_logger().warn("No good frame target found, not publishing.")
+                return
         else:
-            self.good_frame_target = frame_target
-        
-        if self.good_frame_target is not None:
-            frame_target = self.good_frame_target
-        else:
-            self.get_logger().warn("No good frame target found, not publishing.")
-            return
+            if self.good_frame_target is not None:
+                frame_target = self.good_frame_target
+            else:
+                self.get_logger().warn("No good frame target found, not publishing.")
+                return
+            
                     
         
         # Calculate pre-grasp approach frame
@@ -257,9 +268,13 @@ class ArucoGraspBroadcaster(Node):
         # Publish the marker array
         self.marker_publisher.publish(marker_array)
         
-    def move_arm_callback(self, msg):
+    def move_arm_done_callback(self, msg):
         if msg.data == True:
             self.move_arm_done = True
+            
+    def move_arm_get_frames_callback(self, msg):
+        if msg.data == True:
+            self.change_frame = False
 
 def main(args=None):
     rclpy.init(args=args)

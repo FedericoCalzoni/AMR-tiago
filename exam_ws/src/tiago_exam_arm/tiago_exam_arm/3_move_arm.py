@@ -37,6 +37,7 @@ class TiagoArucoGrasp(Node):
         self.point_pub = self.create_publisher(Point, "target_point", 1)
         
         self.done_publisher = self.create_publisher(Bool, '/move_arm/done', 10)
+        self.done_get_frames = self.create_publisher(Bool, '/move_arm/get_frames', 10)
 
         self.cam_K = None
         self.cam_D = None
@@ -109,7 +110,7 @@ class TiagoArucoGrasp(Node):
             self.create_timer(1.0, self.check_and_start_pick)
         elif self.action.startswith("PLACE"):
             # For PLACE actions, start immediately without checking transforms
-            self.create_timer(1.0, self.state_machine_PLACE)
+            self.timer = self.create_timer(1.0, self.state_machine_PLACE)
         else:
             raise ValueError("Invalid action specified. Use PICK63, PICK582, PLACE63, or PLACE582.")
                 
@@ -129,7 +130,7 @@ class TiagoArucoGrasp(Node):
             self.get_logger().info("All required frames are available! Starting the state machine.")
                 
             # Start the pick state machine
-            self.create_timer(1.0, self.state_machine_PICK)
+            self.timer = self.create_timer(1.0, self.state_machine_PICK)
             
         except Exception as e:
             self.get_logger().warn(f"Not all frames available yet: {e}")
@@ -269,11 +270,12 @@ class TiagoArucoGrasp(Node):
             
             if self.move_state == "INIT":
                 # Open gripper before approaching
-                self.run_node_subprocess('link_attacher_client', 'gripper_control', args=['--input_string', 'OPEN'])
+                self.run_node('link_attacher_client', 'gripper_control', args=['--input_string', 'OPEN'])
                 sleep(3.0)
                 # move arm to a confortable positon
                 # self.navigation_process = self.run_node('tiago_exam_arm', 'fold_arm', args=['1.02',' 0.50', '-1.06',' 0.52', '0.98', '-0.22', '-0.34'])
                 self.navigation_process = self.run_node('tiago_exam_arm', 'fold_arm', args=['2.0',' 0.50', '1.0',' 0.52', '0.98', '-0.22', '-0.34'])
+                self.done_get_frames.publish(Bool(data=True))
                 self.move_state = "APPROACH"
                 
             elif self.move_state == "APPROACH":
@@ -287,20 +289,19 @@ class TiagoArucoGrasp(Node):
                     self.get_logger().info("Grasp position reached, closing gripper")
                     
                     if self.action == "PICK63":
-                        self.run_node_subprocess('link_attacher_client', 'gripper_control', args=['--input_string', 'CLOSE63'])
+                        self.run_node('link_attacher_client', 'gripper_control', args=['--input_string', 'CLOSE63'])
                     elif self.action == "PICK582":
-                        self.run_node_subprocess('link_attacher_client', 'gripper_control', args=['--input_string', 'CLOSE582'])
+                        self.run_node('link_attacher_client', 'gripper_control', args=['--input_string', 'CLOSE582'])
                     else:
                         raise ValueError("Invalid action specified. Use PICK63 or PICK582.")
-                    self.move_state = "LIFT"
-                sleep(10.0)
+                    self.move_state = "TRANSPORT"
                 self.get_logger().info("Gripper closed, lifting marker")
                 
-            elif self.move_state == "LIFT":
-                if self.move_to_frame(self.approach_frame):
-                    self.get_logger().info("LIFT position reached, moving to TRANSPORT state")
-                    self.move_state = "TRANSPORT"
-                sleep(3.0)
+            # elif self.move_state == "LIFT":
+            #     if self.move_to_frame(self.approach_frame):
+            #         self.get_logger().info("LIFT position reached, moving to TRANSPORT state")
+            #         self.move_state = "TRANSPORT"
+            #     sleep(3.0)
                 
             elif self.move_state == "TRANSPORT":
                 self.navigation_process = self.run_node('tiago_exam_arm', 'fold_arm', args=['2.0',' 0.50', '1.0',' 0.52', '0.98', '-0.22', '-0.34'])
@@ -311,6 +312,7 @@ class TiagoArucoGrasp(Node):
             elif self.move_state == "DONE":
                 self.get_logger().info("STATE MACHINE ENDED")
                 self.done_publisher.publish(Bool(data=True))
+                self.timer.cancel() 
                 break
             
     def state_machine_PLACE(self):
@@ -326,17 +328,16 @@ class TiagoArucoGrasp(Node):
                 
             # elif self.move_state == "HOVER_THE_TABLE":
                 # self.navigation_process = self.run_node('tiago_exam_arm', 'fold_arm', args=['1.02',' 0.50', '-1.06',' 0.52', '0.98', '-0.22', '-0.34'])
-                # self.navigation_process = self.run_node('tiago_exam_arm', 'fold_arm', args=['2.0',' 0.50', '1.0',' 0.52', '0.98', '-0.22', '-0.34'])
-                self.navigation_process = self.run_node('tiago_exam_arm', 'fold_arm', args=['0.0',' 0.50', '1.0',' 1.0', '0.98', '-0.22', '-0.34'])
+                self.navigation_process = self.run_node('tiago_exam_arm', 'fold_arm', args=['2.0',' 0.50', '1.0',' 0.52', '0.98', '-0.22', '-0.34'])
+                # self.navigation_process = self.run_node('tiago_exam_arm', 'fold_arm', args=['0.0',' 0.50', '1.0',' 1.0', '0.98', '-0.22', '-0.34'])
 
                 sleep(1.0)
                 self.move_state = "RELEASE"
                 sleep(3.0)
                 
             elif self.move_state == "RELEASE":
-                self.run_node_subprocess('link_attacher_client', 'gripper_control', args=['--input_string', 'OPEN'])
+                self.run_node('link_attacher_client', 'gripper_control', args=['--input_string', 'OPEN'])
                 self.move_state = "LIFT"
-                sleep(10.0)
                 self.get_logger().info("Gripper open, lifting arm")
                 
             elif self.move_state == "LIFT":
@@ -347,6 +348,7 @@ class TiagoArucoGrasp(Node):
             elif self.move_state == "DONE":
                 self.get_logger().info("STATE MACHINE ENDED")
                 self.done_publisher.publish(Bool(data=True))
+                self.timer.cancel() 
                 break
 
 def main(args=None):

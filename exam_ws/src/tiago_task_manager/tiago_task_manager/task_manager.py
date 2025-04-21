@@ -21,7 +21,7 @@ class TaskManager(Node):
         
         callback_group = ReentrantCallbackGroup()
         
-        self.state = 'MOVE_TO_PICK_582'
+        self.state = 'MOVE_TO_PICK_63'
         #self.state = 'PICK_CUBE_63'
         
         # Setup executor for background tasks
@@ -125,7 +125,7 @@ class TaskManager(Node):
                 
             if self.navigation_done:
                 self.get_logger().info(f"MOVE_TO_PICK_582: Completed")
-                self.state = 'PICK_CUBE_63'
+                self.state = 'PICK_CUBE_582'
                 self.node_launched = False
             
         elif self.state == 'PICK_CUBE_582':
@@ -169,7 +169,7 @@ class TaskManager(Node):
             
         elif self.state == 'RETURN_HOME':
             self.get_logger().info("RETURN_HOME: Finishing the task")
-            self.run_node_subprocess("tiago_exam_navigation", "navigate_to_pose", '--goal 0.0 -1.0 0.0')
+            self.run_node_subprocess("tiago_exam_navigation", "navigate_to_pose", args=['--goal', '0.0' '-1.0' '0.0'])
             self.state = 'DONE'
             
         elif self.state == 'DONE':
