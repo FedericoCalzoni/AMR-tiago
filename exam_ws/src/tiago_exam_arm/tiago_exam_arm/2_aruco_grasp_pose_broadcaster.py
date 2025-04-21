@@ -27,7 +27,7 @@ class ArucoGraspBroadcaster(Node):
         self.tf_broadcaster = TransformBroadcaster(self)
         self.frame_approach = None
         self.frame_target = None
-        self.timer = self.create_timer(0.1, self.publish_frames)
+        self.timer = self.create_timer(1, self.publish_frames)
         
         # Create marker publisher for visualization
         self.marker_publisher = self.create_publisher(
