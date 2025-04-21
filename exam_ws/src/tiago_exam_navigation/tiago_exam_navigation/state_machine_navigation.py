@@ -60,12 +60,8 @@ class StateMachineNavigation(Node):
         if input:
             input_args = input.split()
             cmd.extend(input_args)
-        process = subprocess.Popen(
-            cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True
-        )
+        process = subprocess.Popen(cmd)
+        
         return process
     
     def run_node(self, package, node, args=None):

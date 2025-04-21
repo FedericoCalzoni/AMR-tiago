@@ -272,8 +272,8 @@ class TiagoArucoGrasp(Node):
                 self.run_node_subprocess('link_attacher_client', 'gripper_control', args=['--input_string', 'OPEN'])
                 sleep(3.0)
                 # move arm to a confortable positon
-                self.navigation_process = self.run_node('tiago_exam_arm', 'fold_arm', args=['1.02',' 0.50', '-1.06',' 0.52', '0.98', '-0.22', '-0.34'])
-                sleep(10.0)
+                # self.navigation_process = self.run_node('tiago_exam_arm', 'fold_arm', args=['1.02',' 0.50', '-1.06',' 0.52', '0.98', '-0.22', '-0.34'])
+                self.navigation_process = self.run_node('tiago_exam_arm', 'fold_arm', args=['2.0',' 0.50', '1.0',' 0.52', '0.98', '-0.22', '-0.34'])
                 self.move_state = "APPROACH"
                 
             elif self.move_state == "APPROACH":
@@ -303,9 +303,9 @@ class TiagoArucoGrasp(Node):
                 sleep(3.0)
                 
             elif self.move_state == "TRANSPORT":
-                if self.move_to_pose(pos=self.default_pose['Position'], quat=self.default_pose['Orientation']):
-                    self.get_logger().info("Marker lifted, task complete!")
-                    self.move_state = "DONE"
+                self.navigation_process = self.run_node('tiago_exam_arm', 'fold_arm', args=['2.0',' 0.50', '1.0',' 0.52', '0.98', '-0.22', '-0.34'])
+                self.get_logger().info("Marker lifted, task complete!")
+                self.move_state = "DONE"
                 sleep(3.0)
                     
             elif self.move_state == "DONE":
@@ -320,13 +320,16 @@ class TiagoArucoGrasp(Node):
             self.get_logger().info(f"Current state: {self.move_state}")
             
             if self.move_state == "INIT":
-                self.navigation_process = self.run_node('tiago_exam_arm', 'fold_arm')
-                sleep(10.0)
-                self.move_state = "HOVER_THE_TABLE"
+            #     self.navigation_process = self.run_node('tiago_exam_arm', 'fold_arm')
+            #     sleep(10.0)
+            #     self.move_state = "HOVER_THE_TABLE"
                 
-            elif self.move_state == "HOVER_THE_TABLE":
-                self.navigation_process = self.run_node('tiago_exam_arm', 'fold_arm', args=['1.02',' 0.50', '-1.06',' 0.52', '0.98', '-0.22', '-0.34'])
-                sleep(10.0)
+            # elif self.move_state == "HOVER_THE_TABLE":
+                # self.navigation_process = self.run_node('tiago_exam_arm', 'fold_arm', args=['1.02',' 0.50', '-1.06',' 0.52', '0.98', '-0.22', '-0.34'])
+                # self.navigation_process = self.run_node('tiago_exam_arm', 'fold_arm', args=['2.0',' 0.50', '1.0',' 0.52', '0.98', '-0.22', '-0.34'])
+                self.navigation_process = self.run_node('tiago_exam_arm', 'fold_arm', args=['0.0',' 0.50', '1.0',' 1.0', '0.98', '-0.22', '-0.34'])
+
+                sleep(1.0)
                 self.move_state = "RELEASE"
                 sleep(3.0)
                 
@@ -337,10 +340,9 @@ class TiagoArucoGrasp(Node):
                 self.get_logger().info("Gripper open, lifting arm")
                 
             elif self.move_state == "LIFT":
-                if self.move_to_pose(pos=self.default_pose['Position'], quat=self.default_pose['Orientation']):
-                    self.get_logger().info("LIFT position reached")
-                    self.move_state = "DONE"
-                sleep(3.0)
+                self.navigation_process = self.run_node('tiago_exam_arm', 'fold_arm', args=['2.0',' 0.50', '1.0',' 0.52', '0.98', '-0.22', '-0.34'])
+                self.get_logger().info("LIFT position reached")
+                self.move_state = "DONE"
                     
             elif self.move_state == "DONE":
                 self.get_logger().info("STATE MACHINE ENDED")
