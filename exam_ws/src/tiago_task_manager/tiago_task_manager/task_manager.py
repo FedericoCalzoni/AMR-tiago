@@ -22,7 +22,6 @@ class TaskManager(Node):
         callback_group = ReentrantCallbackGroup()
         
         self.state = 'MOVE_TO_PICK_63'
-        #self.state = 'PICK_CUBE_63'
         
         # Setup executor for background tasks
         executor = rclpy.executors.MultiThreadedExecutor(4)
@@ -169,7 +168,8 @@ class TaskManager(Node):
             
         elif self.state == 'RETURN_HOME':
             self.get_logger().info("RETURN_HOME: Finishing the task")
-            self.run_node_subprocess("tiago_exam_navigation", "navigate_to_pose", args=['--goal', '0.0' '-1.0' '0.0'])
+            self.run_node('tiago_exam_arm', 'fold_arm')
+            self.run_node("tiago_exam_navigation", "navigate_to_pose", args=['--goal', '0.0', '0.0', '0.0'])
             self.state = 'DONE'
             
         elif self.state == 'DONE':

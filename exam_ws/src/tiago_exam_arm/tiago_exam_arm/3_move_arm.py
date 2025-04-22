@@ -327,8 +327,8 @@ class TiagoArucoGrasp(Node):
             #     self.move_state = "HOVER_THE_TABLE"
                 
             # elif self.move_state == "HOVER_THE_TABLE":
-                # self.navigation_process = self.run_node('tiago_exam_arm', 'fold_arm', args=['1.02',' 0.50', '-1.06',' 0.52', '0.98', '-0.22', '-0.34'])
-                self.navigation_process = self.run_node('tiago_exam_arm', 'fold_arm', args=['2.0',' 0.50', '1.0',' 0.52', '0.98', '-0.22', '-0.34'])
+                self.navigation_process = self.run_node('tiago_exam_arm', 'fold_arm', args=['1.02',' 0.50', '-1.06',' 0.52', '0.98', '-0.22', '-0.34'])
+                # self.navigation_process = self.run_node('tiago_exam_arm', 'fold_arm', args=['2.0',' 0.50', '1.0',' 0.52', '0.98', '-0.22', '-0.34'])
                 # self.navigation_process = self.run_node('tiago_exam_arm', 'fold_arm', args=['0.0',' 0.50', '1.0',' 1.0', '0.98', '-0.22', '-0.34'])
 
                 sleep(1.0)
