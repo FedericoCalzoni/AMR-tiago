@@ -203,7 +203,7 @@ class NavigateToBox(Node):
                     b_c_x, b_c_y = self.publish_faces_info(faces, cv_image)
                     #self.move_head(b_c_x, b_c_y)
                     self.done_publisher.publish(Bool(data=True))
-                    self.shutdown_timer = self.create_timer(12.5, self.delayed_shutdown)
+                    self.shutdown_timer = self.create_timer(20.0, self.delayed_shutdown)
 
             elif not self.faces_info_sent:
                 self.box_detected = True
