@@ -44,7 +44,7 @@ def navigation_bringup(context, *args, **kwargs):
             ),
             launch_arguments={
                 "params_file": os.path.join(
-                    tiago_2dnav, "params", "tiago_nav_public_sim.yaml"
+                    tiago_2dnav, "params", "tiago_nav2.yaml"
                 ),
                 "map": os.path.join(
                     pmb2_maps,
