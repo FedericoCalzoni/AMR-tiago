@@ -343,7 +343,7 @@ class BoxFaceNavigator(Node):
         x_axis, y_axis, z_axis, face_center = self.frame
         
         # The goal is 0.4 meters away from the face along its normal (x-axis)
-        target_position = face_center + 0.1 * x_axis  # Move away from the face
+        target_position = face_center + 0.3 * x_axis  # Move away from the face
         
         # Calculate yaw from the x_axis + check wheter they are aligned but pointing in opposite directions
         #self.get_logger().info(f"prima componente: {x_axis[0]}")

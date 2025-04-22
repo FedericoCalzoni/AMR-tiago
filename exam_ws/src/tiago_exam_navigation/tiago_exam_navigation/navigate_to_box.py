@@ -247,6 +247,15 @@ class NavigateToBox(Node):
         b_c_x, b_c_y = self.from_mt_to_pixel(z_face['center'])
         cv2.circle(cv_image, (b_c_x, b_c_y), 3, (0, 0, 0), -1)
         
+        # Translate the position along the normal vector
+        translation_distance = 0.2  # 20cm away from the face (adjust as needed)
+        translated_center = z_face['center'] + z_face['normal'] * translation_distance
+        
+        # Visualize the translated position
+        t_c_x, t_c_y = self.from_mt_to_pixel(translated_center)
+        cv2.line(cv_image, (b_c_x, b_c_y), (t_c_x, t_c_y), (0, 255, 255), 2)  # Line from original to translated
+        
+        # Store the translated center in the message
         z_face_info_msg.face_number = "Z-axis face"
         z_face_info_msg.center = list(z_face['center'])
         z_face_info_msg.normal = list(z_face['normal'])
