@@ -218,7 +218,7 @@ class NavigateToBox(Node):
     def depth_callback(self, msg):
         #if self.not_read:
         self.depth_data = msg
-
+    
     def from_mt_to_pixel(self, point):
         # Camera intrinsic parameters
         fx = 522.1910329546544  # Focal length in x
@@ -230,10 +230,14 @@ class NavigateToBox(Node):
         px = int((point[0] * fx) / point[2] + cx)
         py = int((point[1] * fy) / point[2] + cy)
         
+        # Clamp values to image boundaries (assuming 640x480 image)
+        px = max(0, min(px, 639))  # Ensure px is between 0 and 639
+        py = max(0, min(py, 479))  # Ensure py is between 0 and 479
+        
         return px, py
 
     def spin(self):
-        self.twist.angular.z = -0.3
+        self.twist.angular.z = -0.6
         self.publisher_.publish(self.twist)
 
     def publish_faces_info(self, faces, cv_image):
