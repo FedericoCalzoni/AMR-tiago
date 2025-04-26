@@ -5,6 +5,7 @@ import tf2_geometry_msgs
 from geometry_msgs.msg import PoseStamped
 from rclpy.node import Node
 from nav2_msgs.action import NavigateToPose
+from nav_msgs.msg import Odometry
 from rclpy.action import ActionClient
 # $ source install/setup.bash
 from std_msgs.msg import Bool
@@ -26,17 +27,46 @@ class BoxFaceNavigator(Node):
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
 
         self.done_publisher = self.create_publisher(Bool, '/align_to_box_face/done', 10)
-        self.state_machine_timer = self.create_timer(0.1, self.is_done)
-        self.face_subscriber_ = self.create_subscription(BoxInfo, '/box/faces_info', self.face_callback, 10)
+        self.movement_timer = self.create_timer(0.1, self.done_moving)
+        self.create_subscription(BoxInfo, '/box/faces_info', self.face_callback, 10)
+        self.create_subscription(Odometry, '/ground_truth_odom', self.odom_callback, 10)
         self.image_subscription = self.create_subscription(Image, '/head_front_camera/rgb/image_raw', self.image_callback, 10)
         self.bridge = CvBridge()
         self.frame = None
+        self.si_e_mosso = False
         self.done = False
+        self.done_moving_= False
+        self.linear_velocity = None
+        self.angular_velocity = None
         self.shutdown_timer = None
         self.target_pose = None
-        self.yaw_threshold = 3*np.pi/180  # 3 degrees
+        self.yaw_threshold = 5*np.pi/180  # 5 degrees
         self.image_saved = False
         self.navigation_in_progress = False
+
+    def odom_callback(self, msg):
+        # Extract velocities from the message
+        self.linear_velocity = msg.twist.twist.linear
+        if abs(self.linear_velocity.x) >= 0.1 or abs(self.linear_velocity.y) >= 0.1:
+            self.si_e_mosso = True
+            self.get_logger().info(f"Si e mosso: {self.si_e_mosso}")
+        self.angular_velocity = msg.twist.twist.angular
+
+    def done_moving(self):
+        if self.linear_velocity is not None and self.angular_velocity is not None:
+            if (abs(self.linear_velocity.x) <= 0.001 and abs(self.linear_velocity.y) <= 0.001 and abs(self.linear_velocity.z) <= 0.001 and
+                abs(self.angular_velocity.z) <= 0.001):
+                self.done_moving_ = True
+        if self.done_moving_ and self.si_e_mosso:
+            # Stop navigation to pose began in a previous step
+            self.get_logger().info("\033[94mStopping navigation to pose\033[0m")
+            self.nav_client._cancel_goal_async(self._goal_handle)
+            self.done_moving_ = False
+            self.si_e_mosso = False
+            self.done = True
+        else:
+            self.done_moving_ = False
+            self.done = False
 
     def is_done(self):
         if self.done:
@@ -258,16 +288,17 @@ class BoxFaceNavigator(Node):
         self.get_logger().info(f'\033[92mSending navigation goal: [{pose.pose.position.x}, {pose.pose.position.y}, {pose.pose.position.z}]\033[0m')
         future = self.nav_client.send_goal_async(goal_msg)
         future.add_done_callback(self.goal_response_callback)
+        self.state_machine_timer = self.create_timer(0.1, self.is_done)
 
     def goal_response_callback(self, future):
         """Handle the goal response."""
-        goal_handle = future.result()
-        if not goal_handle.accepted:
+        self._goal_handle = future.result()
+        if not self._goal_handle.accepted:
             self.get_logger().error('Goal was rejected by the action server')
             self.navigation_in_progress = False
             return
         self.get_logger().info('Goal accepted by the action server')
-        result_future = goal_handle.get_result_async()
+        result_future = self._goal_handle.get_result_async()
         result_future.add_done_callback(self.get_result_callback)
 
     def get_result_callback(self, future):
@@ -287,9 +318,9 @@ class BoxFaceNavigator(Node):
             self.get_logger().error('Face frame not available')
             return None
         x_axis, y_axis, z_axis, face_center = self.frame
-        self.get_logger().info(f"x axis: {x_axis}")
-        # The goal is 0.35 meters away from the face along its normal (x-axis)
-        target_position = face_center + 0.35 * x_axis  # Move away from the face
+        #self.get_logger().info(f"x axis: {x_axis}")
+        # The goal is 0.15 meters away from the face along its normal (x-axis)
+        target_position = face_center + 0.15 * x_axis  # Move away from the face
         
         # Calculate yaw from the x_axis + check wheter they are aligned but pointing in opposite directions
         #self.get_logger().info(f"prima componente: {x_axis[0]}")
