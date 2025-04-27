@@ -71,6 +71,7 @@ class BoxFaceNavigator(Node):
 
     def is_done(self):
         if self.done:
+            self.shutdown_timer = self.create_timer(2.0, self.delayed_shutdown)
             self.done_publisher.publish(Bool(data=True))
 
     def image_callback(self, msg):
