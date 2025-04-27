@@ -28,6 +28,7 @@ class NavigateToBox(Node):
         self.bridge = CvBridge()
         self.twist = Twist()
         self.faces_info_sent = False
+        self.msg_counter = 5
         self.box_detected = False
         self.depth_data = None
         self.not_read = False
@@ -200,7 +201,9 @@ class NavigateToBox(Node):
                             cv_image[px_y, px_x] = color
 
                     # Publish faces information - custom message
-                    b_c_x, b_c_y = self.publish_faces_info(faces, cv_image)
+                    if self.msg_counter < 5:
+                        self.msg_counter += 1
+                        b_c_x, b_c_y = self.publish_faces_info(faces, cv_image)
                     #self.move_head(b_c_x, b_c_y)
                     self.done_publisher.publish(Bool(data=True))
                     self.shutdown_timer = self.create_timer(20.0, self.delayed_shutdown)
