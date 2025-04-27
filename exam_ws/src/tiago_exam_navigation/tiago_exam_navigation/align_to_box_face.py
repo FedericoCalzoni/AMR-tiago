@@ -28,6 +28,7 @@ class BoxFaceNavigator(Node):
 
         self.done_publisher = self.create_publisher(Bool, '/align_to_box_face/done', 10)
         self.movement_timer = self.create_timer(0.1, self.done_moving)
+        self.timer = self.create_timer(0.1, self.pose_received)
         self.create_subscription(BoxInfo, '/box/faces_info', self.face_callback, 10)
         self.create_subscription(Odometry, '/ground_truth_odom', self.odom_callback, 10)
         self.image_subscription = self.create_subscription(Image, '/head_front_camera/rgb/image_raw', self.image_callback, 10)
@@ -50,7 +51,6 @@ class BoxFaceNavigator(Node):
         self.linear_velocity = msg.twist.twist.linear
         if abs(self.linear_velocity.x) >= 0.1 or abs(self.linear_velocity.y) >= 0.1:
             self.si_e_mosso = True
-            self.get_logger().info(f"Si e mosso: {self.si_e_mosso}")
         self.angular_velocity = msg.twist.twist.angular
 
     def done_moving(self):
@@ -106,7 +106,7 @@ class BoxFaceNavigator(Node):
 
     def face_callback(self, msg):
         if not self.target_pose_received:
-            faces = []
+            self.faces = []
             for i in range(2):
                 face = msg.faces[i]
                 face_info = {
@@ -116,14 +116,18 @@ class BoxFaceNavigator(Node):
                                 face.plane_coefficients[2], face.plane_coefficients[3]]),
                     'points': np.array([[point.x, point.y, point.z] for point in face.points])
                 }
-                faces.append(face_info) 
+                self.faces.append(face_info) 
 
             self.target_pose_received = True
+
+    def pose_received(self):
+        if self.target_pose_received:
             # Choose best face
-            best_face = self.select_best_face_to_approach(faces)
+            best_face = self.select_best_face_to_approach(self.faces)
             # Process the face and navigate directly
             if best_face is not None:
                 self.process_face_and_navigate(best_face)
+                self.timer.cancel()
 
     def process_face_and_navigate(self, face_info):
         """Process face info and navigate in one step."""
