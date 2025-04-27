@@ -21,6 +21,9 @@ class ArucoGraspBroadcaster(Node):
         self.move_arm_done = False
         self.change_frame = True
         
+        self.frame_target_history = []
+        self.history_size = 5
+        
         self.subscription = self.create_subscription(
             TransformStamped, 
             '/aruco_single/transform', 
@@ -30,7 +33,7 @@ class ArucoGraspBroadcaster(Node):
         self.tf_broadcaster = TransformBroadcaster(self)
         self.frame_approach = None
         self.frame_target = None
-        self.timer = self.create_timer(1, self.publish_frames)
+        self.timer = self.create_timer(0.1, self.publish_frames)
         
         # Create marker publisher for visualization
         self.marker_publisher = self.create_publisher(
@@ -50,7 +53,7 @@ class ArucoGraspBroadcaster(Node):
         
         self.t_base = None
         self.frame_aruco = None
-        self.max_tilt = 0.1
+        self.max_tilt = 0.01
         self.good_frame_target = None
         
         # Dictionary to store our transform pairs for visualization
@@ -139,20 +142,24 @@ class ArucoGraspBroadcaster(Node):
         # frame_robot: camera -> base
         frame_target = frame_robot * self.frame_aruco
         
-        # Check if x-axis of frame_target is mostly aligned with vertical world axis
-        x_axis = frame_target.M.UnitX()  # Extract x unit vector
-        y_axis = frame_target.M.UnitY()
-        vertical_alignment = abs(y_axis[2])  # z-component represents vertical alignment
+        # Check if z-axis of frame_target is mostly aligned with z of world
+        z_axis = frame_target.M.UnitZ()
+        z_direction = abs(z_axis[2])
         
         self.publish_frame(frame_target, self.frame_target_name)
         
         if self.change_frame:
             # Check if the alignment is within the threshold
-            if vertical_alignment > (1-self.max_tilt):
-                self.get_logger().warn(f"Frame not vertical:{str(vertical_alignment)}")
+            if z_direction < (1-self.max_tilt):
+                self.get_logger().warn(f"Frame not vertical:{str(z_direction)}")
                 # Not aligned enough, don't publish frames
-            else:
-                self.good_frame_target = frame_target
+            else:                
+                # Add current frame to history
+                self.frame_target_history.append(frame_target)
+                # Keep only the most recent frames
+                if len(self.frame_target_history) > self.history_size:
+                    self.frame_target_history.pop(0)
+                self.good_frame_target = self.average_frames(self.frame_target_history)
             
             if self.good_frame_target is not None:
                 frame_target = self.good_frame_target
@@ -184,6 +191,63 @@ class ArucoGraspBroadcaster(Node):
 
         # Publish visualization markers
         self.publish_transform_markers()
+        
+    def average_frames(self, frames):
+        """
+        Calculate the average of multiple KDL frames
+        
+        For position: Simple arithmetic mean of x, y, z components
+        For orientation: Convert to quaternions, average, and convert back to rotation matrix
+        """
+        if not frames:
+            return None
+        
+        # For position, simple average
+        position = Vector(0, 0, 0)
+        for frame in frames:
+            position += frame.p
+        position = position / len(frames)
+        
+        # For orientation, average quaternions
+        import PyKDL
+        quaternions = []
+        for frame in frames:
+            qx, qy, qz, qw = frame.M.GetQuaternion()
+            quaternions.append((qx, qy, qz, qw))
+        
+        # Average quaternions
+        avg_qx, avg_qy, avg_qz, avg_qw = self.average_quaternions(quaternions)
+        
+        # Create a rotation from the averaged quaternion
+        rotation = Rotation.Quaternion(avg_qx, avg_qy, avg_qz, avg_qw)
+        
+        # Return a new frame with averaged position and orientation
+        return Frame(rotation, position)
+
+    def average_quaternions(self, quaternions):
+        """
+        Calculate the average of multiple quaternions
+        
+        Args:
+            quaternions: List of (qx, qy, qz, qw) tuples
+            
+        Returns:
+            Tuple of (qx, qy, qz, qw) representing the average quaternion
+        """
+        import numpy as np
+        
+        # Convert to numpy arrays for easier math
+        q_array = np.array(quaternions)
+        
+        # Method 1: Simple arithmetic mean (works for quaternions that are close to each other)
+        avg_q = np.mean(q_array, axis=0)
+        
+        # Normalize the result
+        norm = np.linalg.norm(avg_q)
+        if norm > 1e-10:  # Avoid division by zero
+            avg_q = avg_q / norm
+        
+        return tuple(avg_q)
         
     def publish_transform_markers(self):
         """Create and publish arrow markers to visualize transforms"""

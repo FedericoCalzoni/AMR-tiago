@@ -131,7 +131,7 @@ def main(args=None):
             print("Invalid arguments. Usage: script.py [joint1_pos joint2_pos ... joint7_pos]")
             print("Using default folded position for navigation")
     
-    max_attempts = 3
+    max_attempts = 5
     attempt = 0
     success = False
     

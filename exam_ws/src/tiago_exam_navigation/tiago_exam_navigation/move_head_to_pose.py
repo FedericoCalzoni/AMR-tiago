@@ -111,7 +111,7 @@ def main(args=None):
             rclpy.shutdown()
             return 1
     
-    max_attempts = 3
+    max_attempts = 5
     attempt = 0
     success = False
     

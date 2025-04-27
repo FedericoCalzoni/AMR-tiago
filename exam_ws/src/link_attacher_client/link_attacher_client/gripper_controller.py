@@ -265,7 +265,7 @@ def main(args=None):
         model = "582"
     
     # Add retry mechanism similar to move_head_to_pose.py
-    max_attempts = 3
+    max_attempts = 5
     attempt = 0
     success = False
     
