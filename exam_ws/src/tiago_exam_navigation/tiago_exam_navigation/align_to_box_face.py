@@ -33,6 +33,7 @@ class BoxFaceNavigator(Node):
         self.image_subscription = self.create_subscription(Image, '/head_front_camera/rgb/image_raw', self.image_callback, 10)
         self.bridge = CvBridge()
         self.frame = None
+        self.target_pose_received = False
         self.si_e_mosso = False
         self.done = False
         self.done_moving_= False
@@ -104,23 +105,25 @@ class BoxFaceNavigator(Node):
         return px, py
 
     def face_callback(self, msg):
-        faces = []
-        for i in range(2):
-            face = msg.faces[i]
-            face_info = {
-                'center': np.array([face.center[0], face.center[1], face.center[2]]),
-                'normal': np.array([face.normal[0], face.normal[1], face.normal[2]]),
-                'plane_coefficients': np.array([face.plane_coefficients[0], face.plane_coefficients[1], 
-                            face.plane_coefficients[2], face.plane_coefficients[3]]),
-                'points': np.array([[point.x, point.y, point.z] for point in face.points])
-            }
-            faces.append(face_info) 
+        if not self.target_pose_received:
+            faces = []
+            for i in range(2):
+                face = msg.faces[i]
+                face_info = {
+                    'center': np.array([face.center[0], face.center[1], face.center[2]]),
+                    'normal': np.array([face.normal[0], face.normal[1], face.normal[2]]),
+                    'plane_coefficients': np.array([face.plane_coefficients[0], face.plane_coefficients[1], 
+                                face.plane_coefficients[2], face.plane_coefficients[3]]),
+                    'points': np.array([[point.x, point.y, point.z] for point in face.points])
+                }
+                faces.append(face_info) 
 
-        # Choose best face
-        best_face = self.select_best_face_to_approach(faces)
-        # Process the face and navigate directly
-        if best_face is not None:
-            self.process_face_and_navigate(best_face)
+            self.target_pose_received = True
+            # Choose best face
+            best_face = self.select_best_face_to_approach(faces)
+            # Process the face and navigate directly
+            if best_face is not None:
+                self.process_face_and_navigate(best_face)
 
     def process_face_and_navigate(self, face_info):
         """Process face info and navigate in one step."""
