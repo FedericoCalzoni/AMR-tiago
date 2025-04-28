@@ -138,6 +138,7 @@ class TiagoArucoGrasp(Node):
        
         
     def run_node_subprocess(self, package, node, args=None):
+        """Run a ROS2 node as a subprocess."""
         cmd = ['ros2', 'run', package, node]
 
         if args:
@@ -153,6 +154,7 @@ class TiagoArucoGrasp(Node):
         return process
     
     def run_node(self, package, node, args=None):
+        """Run a ROS2 node and wait for it to finish."""
         cmd = ['ros2', 'run', package, node]
 
         if args:
@@ -164,6 +166,7 @@ class TiagoArucoGrasp(Node):
     
     
     def move_to_pose(self, pos, quat):
+        """Move the arm to a specified pose."""
         try:
             self.moveit2.move_to_pose(position=pos, quat_xyzw=quat)
             self.moveit2.wait_until_executed()
@@ -173,6 +176,7 @@ class TiagoArucoGrasp(Node):
             return False
 
     def move_to_frame(self, target_frame):
+        """Move the arm to a specified frame."""
         try:
             t_target = self.tf_buffer.lookup_transform(
                 self.robot_base_frame, 

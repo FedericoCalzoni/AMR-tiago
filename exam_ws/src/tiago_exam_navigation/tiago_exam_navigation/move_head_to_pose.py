@@ -27,6 +27,7 @@ class MoveHead(Node):
         self.send_goal()
         
     def send_goal(self):
+        """Send the goal to the action server"""
         # Create the goal message
         goal_msg = FollowJointTrajectory.Goal()
         goal_msg.trajectory.joint_names = ['head_1_joint', 'head_2_joint']
@@ -45,6 +46,7 @@ class MoveHead(Node):
         self._send_goal_future.add_done_callback(self.goal_response_callback)
     
     def goal_response_callback(self, future):
+        """Callback for goal response"""
         goal_handle = future.result()
         
         if not goal_handle:
@@ -64,6 +66,7 @@ class MoveHead(Node):
         self._get_result_future.add_done_callback(self.result_callback)
     
     def result_callback(self, future):
+        """Callback for result"""
         result = future.result()
         self.action_complete = True
         

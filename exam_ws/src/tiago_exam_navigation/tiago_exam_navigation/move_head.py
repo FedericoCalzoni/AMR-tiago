@@ -51,6 +51,7 @@ class HeadTeleopNode(Node):
         print("Use 'w', 's', 'a', 'd' keys to move the head. Press 'q' to quit.")
 
     def image_callback(self, msg):
+        """Callback for image subscription."""
         try:
             self.img_msg = msg
             self.img = self.bridge.imgmsg_to_cv2(self.img_msg, desired_encoding="bgr8")
@@ -58,6 +59,7 @@ class HeadTeleopNode(Node):
             self.get_logger().error(f"Error converting image: {e}")
 
     def timer_callback(self):
+        """Timer callback to handle key presses and image display."""
         # Display the image if available
         if self.img is not None:
             try:

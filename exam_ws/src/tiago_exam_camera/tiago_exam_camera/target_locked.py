@@ -55,6 +55,7 @@ class ArucoCubeDetection(Node):
         self.camera_info = msg
         
     def image_callback(self, msg):
+        """Detects ArUco markers and moves the head."""
         self.img = self.bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
         gray = cv2.cvtColor(self.img, cv2.COLOR_BGR2GRAY)
         corners, ids, _ = cv2.aruco.detectMarkers(gray, self.aruco_dict, parameters=self.aruco_params)
@@ -128,6 +129,7 @@ class ArucoCubeDetection(Node):
         cv2.waitKey(1)
         
     def joint_state_callback(self, msg):
+        """initialize head position"""
         try:
             head_1_index = msg.name.index('head_1_joint')
             head_2_index = msg.name.index('head_2_joint')
@@ -145,6 +147,7 @@ class ArucoCubeDetection(Node):
             self.get_logger().warn('Head joint names not found in joint_states message')
 
     def rotate_head(self):
+        """Rotate the head to search for the marker."""
         # Calculate control signals
         self.current_position[1] += -0.3
         point = JointTrajectoryPoint()
@@ -161,6 +164,7 @@ class ArucoCubeDetection(Node):
             self.head_publisher.publish(self.head_state)
 
     def move_head(self, center_x, center_y):
+        """Move the head to center on the detected marker."""
         img_center_x = self.img.shape[1] // 2
         img_center_y = self.img.shape[0] // 2
         
@@ -247,6 +251,7 @@ class ArucoCubeDetection(Node):
         self.head_publisher.publish(self.head_state)
     
     def publish_marker_transform(self, corner,  marker_id, timestamp):
+        """Publish the transform of the detected ArUco marker."""
         if self.camera_info is None:
             self.get_logger().warn("Camera info not yet received. Skipping transform publishing.")
             return

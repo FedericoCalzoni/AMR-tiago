@@ -34,16 +34,19 @@ class TaskManager(Node):
         self.timer = self.create_timer(1.0, self.fsm_step)
         
     def navigation_callback(self, msg):
+        """Callback for navigation completion."""
         if msg.data == True:
             self.navigation_done = True
         else:
             self.navigation_done = False
             
     def move_arm_callback(self, msg):
+        """Callback for arm movement completion."""
         if msg.data == True:
             self.move_arm_done = True
             
     def run_node_subprocess(self, package, node, args=None):
+        """Run a ROS2 node as a subprocess."""
         cmd = ['ros2', 'run', package, node]
 
         if args:
@@ -54,6 +57,7 @@ class TaskManager(Node):
         return process
     
     def run_node(self, package, node, args=None):
+        """Run a ROS2 node and wait for it to finish."""
         cmd = ['ros2', 'run', package, node]
 
         if args:
@@ -64,6 +68,7 @@ class TaskManager(Node):
         return process
     
     def fsm_step(self):
+        """Master state machine step for the pick and place task."""
         if self.state == 'MOVE_TO_PICK_63':
             if not self.node_launched:
                 self.get_logger().info("MOVE_TO_PICK_63: Starting navigation to pick box")

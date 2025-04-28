@@ -55,6 +55,7 @@ class StateMachineNavigation(Node):
             self.alignment_to_face_terminated = True
 
     def run_node_subprocess(self, package, node, input = ""):
+        """Run a ROS2 node as a subprocess."""
         # Format: ros2 run <package_name> <node_executable>
         cmd = ['ros2', 'run', package, node]
         if input:
@@ -65,6 +66,7 @@ class StateMachineNavigation(Node):
         return process
     
     def run_node(self, package, node, args=None):
+        """Run a ROS2 node and wait for it to finish."""
         cmd = ['ros2', 'run', package, node]
 
         if args:
@@ -75,6 +77,7 @@ class StateMachineNavigation(Node):
         return process
     
     def state_machine_step(self):
+        """State machine for the navigation process."""
         #self.get_logger().info(f"Current state: {self.current_state.name}")
 
         if self.current_state == State.FOLDING_ARM:

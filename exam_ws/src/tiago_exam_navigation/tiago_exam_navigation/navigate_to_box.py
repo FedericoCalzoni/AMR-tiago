@@ -40,6 +40,7 @@ class NavigateToBox(Node):
         self.reset_head_position()
 
     def reset_head_position(self):
+        """Reset the head position to (0, 0)"""
         point = JointTrajectoryPoint()
         self.current_position = [0.0, 0.0]  # Initialize current position
         point.positions = self.current_position
@@ -48,6 +49,7 @@ class NavigateToBox(Node):
         self.head_publisher.publish(self.head_state)
 
     def move_head(self, center_x, center_y):
+        """Move the head to center on the detected box."""
         img_center_x = self.img.shape[1] // 2
         img_center_y = self.img.shape[0] // 2
         cv2.circle(self.img, (img_center_x, img_center_y), 3, (0, 255, 255), -1)
@@ -135,12 +137,14 @@ class NavigateToBox(Node):
         self.head_publisher.publish(self.head_state)
 
     def odom_callback(self, msg):
+        """Callback for odometry data."""
         if msg.twist.twist.linear.x != 0 and msg.twist.twist.linear.y != 0:
             self.moving = True
         else:
             self.moving = False
 
     def image_callback(self, msg):
+        """Processes the image and detects the box."""
         if self.shutdown_requested:
             return
         cv_image = self.bridge.imgmsg_to_cv2(msg, "bgr8")
@@ -213,6 +217,7 @@ class NavigateToBox(Node):
         self.depth_data = msg
     
     def from_mt_to_pixel(self, point):
+        """convert 3D point in meters to pixel coordinates."""
         # Camera intrinsic parameters
         fx = 522.1910329546544  # Focal length in x
         fy = 522.1910329546544  # Focal length in y
@@ -230,10 +235,12 @@ class NavigateToBox(Node):
         return px, py
 
     def spin(self):
+        """Spin the robot"""
         self.twist.angular.z = -0.6
         self.publisher_.publish(self.twist)
 
     def publish_faces_info(self, faces, cv_image):
+        """publish the faces information"""
         box_faces_msg = BoxInfo()
         z_face_info_msg = FaceInfo()
 
@@ -482,6 +489,7 @@ class NavigateToBox(Node):
         return np.append(normal, d)
     
     def delayed_shutdown(self):
+        """Shutdown the node after a delay."""
         self.get_logger().info("Delayed shutdown timer triggered - shutting down node")
         if self.shutdown_timer:
             self.shutdown_timer.cancel()

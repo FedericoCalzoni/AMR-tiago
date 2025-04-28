@@ -47,6 +47,7 @@ class BoxFaceNavigator(Node):
         self.navigation_in_progress = False
 
     def odom_callback(self, msg):
+        """Process odometry data."""
         # Extract velocities from the message
         self.linear_velocity = msg.twist.twist.linear
         if abs(self.linear_velocity.x) >= 0.1 or abs(self.linear_velocity.y) >= 0.1:
@@ -54,6 +55,7 @@ class BoxFaceNavigator(Node):
         self.angular_velocity = msg.twist.twist.angular
 
     def done_moving(self):
+        """Check if the robot is done moving"""
         if self.linear_velocity is not None and self.angular_velocity is not None:
             if (abs(self.linear_velocity.x) <= 0.001 and abs(self.linear_velocity.y) <= 0.001 and abs(self.linear_velocity.z) <= 0.001 and
                 abs(self.angular_velocity.z) <= 0.001):
@@ -70,11 +72,13 @@ class BoxFaceNavigator(Node):
             self.done = False
 
     def is_done(self):
+        """publish the done status"""
         if self.done:
             self.shutdown_timer = self.create_timer(2.0, self.delayed_shutdown)
             self.done_publisher.publish(Bool(data=True))
 
     def image_callback(self, msg):
+        """Process the image and draw the face frame."""
         if self.frame is not None and not self.image_saved:
             cv_image = self.bridge.imgmsg_to_cv2(msg, "bgr8")
 
@@ -93,6 +97,7 @@ class BoxFaceNavigator(Node):
             #cv2.imwrite("camera_image.png", cv_image)
 
     def from_mt_to_pixel(self, point):
+        """Convert a 3D point in meters to pixel coordinates."""
         # Camera intrinsic parameters
         fx = 522.1910329546544  # Focal length in x
         fy = 522.1910329546544  # Focal length in y
@@ -106,6 +111,7 @@ class BoxFaceNavigator(Node):
         return px, py
 
     def face_callback(self, msg):
+        """Process the face information and store it."""
         if not self.target_pose_received:
             self.faces = []
             for i in range(2):
@@ -122,6 +128,7 @@ class BoxFaceNavigator(Node):
             self.target_pose_received = True
 
     def pose_received(self):
+        """Check if the target pose has been received."""
         if self.target_pose_received:
             # Choose best face
             best_face = self.select_best_face_to_approach(self.faces)
@@ -152,6 +159,7 @@ class BoxFaceNavigator(Node):
         self.send_navigation_goal(target_pose)   
 
     def get_face_frame(self, face_info): 
+        """Calculate the face frame based on the face information."""
         face_center = face_info['center']
         face_normal = face_info['normal']
         # Define the z-axis as pointing upward
@@ -164,6 +172,7 @@ class BoxFaceNavigator(Node):
         self.frame = [x_axis, y_axis, z_axis, face_center]
 
     def transform_face_to_map(self, face_info):
+        """Transform the face information from the camera frame to the map frame."""
         try:
             # First check if we can do a direct transform
             if self.tf_buffer.can_transform(
@@ -285,12 +294,14 @@ class BoxFaceNavigator(Node):
             return transformed_face_info
 
     def is_valid_pose(self, pose):
+        """Check if the pose is valid for navigation."""
         x, y, z = pose.pose.position.x, pose.pose.position.y, pose.pose.position.z
         if x > 1.5 or abs(y) > 10.0 or abs(z) > 1.0:
             return False
         return True
 
     def send_navigation_goal(self, pose):
+        """Send the navigation goal to the action server."""
         goal_msg = NavigateToPose.Goal()
         goal_msg.pose = pose
         self.get_logger().info(f'\033[92mSending navigation goal: [{pose.pose.position.x}, {pose.pose.position.y}, {pose.pose.position.z}]\033[0m')
@@ -409,6 +420,7 @@ class BoxFaceNavigator(Node):
         return best_face
 
     def delayed_shutdown(self):
+        """Shutdown the node after a delay."""
         self.get_logger().info("Delayed shutdown timer triggered - shutting down node")
         if self.shutdown_timer:
             self.shutdown_timer.cancel()

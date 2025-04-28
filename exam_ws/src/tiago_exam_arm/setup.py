@@ -24,8 +24,7 @@ setup(
             "fold_arm = tiago_exam_arm.fold_arm:main",
             "initialize_arm = tiago_exam_arm.initialize_arm:main",
             "move_arm = tiago_exam_arm.move_arm:main",
-            "publish_aruco_cube = tiago_exam_arm.publish_aruco_cube:main", 
-            "tf_broadcaster = tiago_exam_arm.tf_broadcaster:main",
+            "publish_aruco_cube = tiago_exam_arm.publish_aruco_cube:main",
         ],
     },
 )

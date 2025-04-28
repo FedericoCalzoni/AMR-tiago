@@ -60,6 +60,7 @@ class ArucoGraspBroadcaster(Node):
         self.transform_pairs = {}
         
     def get_aruco_callback(self, msg):
+        """Callback to receive the ArUco marker transform"""
         position = Vector(msg.transform.translation.x, msg.transform.translation.y, msg.transform.translation.z)
         orientation = Rotation.Quaternion(msg.transform.rotation.x, msg.transform.rotation.y, msg.transform.rotation.z, msg.transform.rotation.w) 
         # camera -> aruco
@@ -76,6 +77,7 @@ class ArucoGraspBroadcaster(Node):
         }
         
     def timer_tf_base(self):
+        """Timer callback to get the transform from base to camera"""
         try:
             self.t_base = self.tf_buffer.lookup_transform(
                 self.robot_base_frame, 
@@ -97,6 +99,7 @@ class ArucoGraspBroadcaster(Node):
         return
         
     def get_frame_kdl(self, tf):
+        """Convert a TransformStamped message to a KDL Frame"""
         pos = [tf.transform.translation.x, tf.transform.translation.y, tf.transform.translation.z]
         quat = [tf.transform.rotation.x,
                 tf.transform.rotation.y,
@@ -106,6 +109,7 @@ class ArucoGraspBroadcaster(Node):
         return frame
         
     def publish_frame(self, frame, frame_name):
+        """Publish a KDL frame as a TransformStamped message"""
         t = TransformStamped()
         t.header.stamp = self.get_clock().now().to_msg()
         t.header.frame_id = self.robot_base_frame
@@ -131,6 +135,7 @@ class ArucoGraspBroadcaster(Node):
         self.tf_broadcaster.sendTransform(t)
         
     def publish_frames(self):
+        """Publish the frames for the target, approach, and grasp"""
         if self.t_base is None or self.frame_aruco is None:
             return
             
