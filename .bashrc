@@ -141,7 +141,11 @@ build-ws() {
     echo "Building pymoveit2..."
     cd ~/AMR-tiago/tiago_ws/src/pymoveit2-4.1.1/ || { echo "Error: pymoveit2 directory not found." >&2; return 1; }
     rosdep install -y -r -i --rosdistro ${ROS_DISTRO} --from-paths .
-    colcon build --merge-install --symlink-install --cmake-args "-DCMAKE_BUILD_TYPE=Release"
+    colcon build --merge-install --symlink-install --cmake-args "-DCMAKE_BUILD_TYPE=Release"  || return 1
+
+    echo "Building linkattacher..."
+    cd ~/AMR-tiago/tiago_ws/src || { echo "Error: tiago_ws/src directory not found." >&2; return 1; }
+    colcon build --packages-select linkattacher_msgs ros2_linkattacher || return 1
     
     echo "All workspaces built!"
     cd ~  # Return to home directory

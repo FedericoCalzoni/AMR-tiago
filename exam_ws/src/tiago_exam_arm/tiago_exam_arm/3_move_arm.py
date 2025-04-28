@@ -332,10 +332,10 @@ class TiagoArucoGrasp(Node):
                 # self.navigation_process = self.run_node('tiago_exam_arm', 'fold_arm', args=['0.0',' 0.50', '1.0',' 1.0', '0.98', '-0.22', '-0.34'])
                 
                 if self.action == "PLACE63":
-                    self.navigation_process = self.run_node('tiago_exam_arm', 'fold_arm', args=['2.30', '0.40', '0.65', '1.01', '-0.91', '1.10', '0.06']
+                    self.navigation_process = self.run_node('tiago_exam_arm', 'fold_arm', args=['2.25', '0.40', '0.65', '1.01', '-0.91', '1.10', '0.06']
 )
                 elif self.action == "PLACE582":
-                    self.navigation_process = self.run_node('tiago_exam_arm', 'fold_arm', args=['2.08', '0.53', '0.71', '1.33', '-0.84', '1.01', '-0.44']
+                    self.navigation_process = self.run_node('tiago_exam_arm', 'fold_arm', args=['2.13', '0.53', '0.71', '1.33', '-0.84', '1.01', '-0.44']
 )
                 else:
                     raise ValueError("Invalid action specified. Use PLACE63 or PLACE582.")

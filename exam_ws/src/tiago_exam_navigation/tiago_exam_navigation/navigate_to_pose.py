@@ -7,7 +7,8 @@ from geometry_msgs.msg import PoseStamped
 from nav2_msgs.action import NavigateToPose
 import argparse
 import sys
-from math import sin, cos
+from math import sin, cos, sqrt
+from tf2_ros import TransformListener, Buffer
 
 
 class NavigationClient(Node):
@@ -18,11 +19,16 @@ class NavigationClient(Node):
         self.frame_id = frame_id
         self.action_complete = False
         self.action_succeeded = False
+        self.position_tolerance = 0.5  # 10cm tolerance for position
         
         super().__init__('navigation_client')
         
         # Create action client for NavigateToPose
         self._action_client = ActionClient(self, NavigateToPose, 'navigate_to_pose')
+        
+        # Setup TF listener to get robot pose
+        self.tf_buffer = Buffer()
+        self.tf_listener = TransformListener(self.tf_buffer, self)
         
         # Wait for the action server to start
         self.get_logger().info("Waiting for navigation server...")
@@ -84,15 +90,43 @@ class NavigationClient(Node):
     def result_callback(self, future):
         """Handle the final result."""
         result = future.result()
-        self.action_complete = True
         
-        # Note: NavigateToPose result doesn't have standard status codes like FollowJointTrajectory
-        # We'll check if we received a valid result
+        # Check if we received a valid result
         if result:
-            self.get_logger().info('Navigation succeeded!')
-            self.action_succeeded = True
+            # Verify if the robot is at the goal pose
+            if self.verify_robot_at_goal_pose():
+                self.get_logger().info('Navigation succeeded! Robot is at goal pose.')
+                self.action_succeeded = True
+            else:
+                self.get_logger().error('Navigation reported success but robot is not at goal pose.')
         else:
             self.get_logger().error('Navigation failed')
+            
+        self.action_complete = True
+    
+    def verify_robot_at_goal_pose(self):
+        """Verify if the robot's current pose matches the goal pose within tolerance."""
+        try:
+            # Get the latest transform from map to base_footprint
+            transform = self.tf_buffer.lookup_transform(
+                self.frame_id, 'base_footprint', rclpy.time.Time())
+            
+            # Extract position from transform
+            current_x = transform.transform.translation.x
+            current_y = transform.transform.translation.y
+            
+            # Calculate distance between current position and goal
+            distance = sqrt((current_x - self.x)**2 + (current_y - self.y)**2)
+            
+            self.get_logger().info(f"Current position: x={current_x}, y={current_y}")
+            self.get_logger().info(f"Distance to goal: {distance} (tolerance: {self.position_tolerance})")
+            
+            # Check if within tolerance
+            return distance <= self.position_tolerance
+            
+        except Exception as e:
+            self.get_logger().error(f'Error getting robot pose: {e}')
+            return False
     
     def wait_for_completion(self, timeout_sec=30.0):
         """Wait for the action to complete with timeout"""
@@ -120,7 +154,7 @@ def main(args=None):
     # Extract goal pose
     x, y, theta = parsed_args.goal
     
-    max_attempts = 5
+    max_attempts = 50
     attempt = 0
     success = False
     
