@@ -1,0 +1,2 @@
+# BoxFaces.msg
+FaceInfo[] faces

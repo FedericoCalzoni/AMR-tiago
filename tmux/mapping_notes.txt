@@ -1,0 +1,14 @@
+1 - BringUP
+2 - RViz (Scans)
+4 - MappingClosure
+5 - save maps
+
+ctrl-a q        change pane
+Ctrl-a c        create tab
+ctrl-a <number> change tab
+Ctrl-a "        horizontal split
+Ctrl-a %        vertical split
+Ctrl-a &        kill everything
+
+nav2 parameters
+/home/federico/AMR-docker/AMR-tiago/tiago_ws/src/pal_navigation_cfg_public/pal_navigation_cfg_params/params/pmb2_nav2.yaml

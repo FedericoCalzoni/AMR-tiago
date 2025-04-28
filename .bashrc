@@ -95,17 +95,23 @@ fi
 rebuild-ws() {
     # Rebuild ros2_ws
     echo "Rebuilding ros2_ws..."
-    cd ~/ros2_ws || { echo "Error: ros2_ws directory not found." >&2; return 1; }
+    cd ~/AMR-tiago/ros2_ws || { echo "Error: ros2_ws directory not found." >&2; return 1; }
     trash build install log  # Clean existing build artifacts
     colcon build || return 1  # Build the workspace
     
     # Rebuild tiago_ws
     echo "Rebuilding tiago_ws..."
-    cd ~/tiago_ws || { echo "Error: tiago_ws directory not found." >&2; return 1; }
+    cd ~/AMR-tiago/tiago_ws || { echo "Error: tiago_ws directory not found." >&2; return 1; }
     trash build install log  # Clean existing build artifacts
     colcon build || return 1  # Build the workspace
+
+    echo "Building pymoveit2..."
+    cd ~/AMR-tiago/tiago_ws/src/pymoveit2-4.1.1/ || { echo "Error: pymoveit2 directory not found." >&2; return 1; }
+    trash build install log  # Clean existing build artifacts
+    rosdep install -y -r -i --rosdistro ${ROS_DISTRO} --from-paths .
+    colcon build --merge-install --symlink-install --cmake-args "-DCMAKE_BUILD_TYPE=Release"
     
-    echo "Both workspaces rebuilt successfully!"
+    echo "All workspaces rebuilt!"
     cd ~  # Return to home directory
 }
 
@@ -116,21 +122,73 @@ rebuild-AMR-tiago() {
     trash build install log  # Clean existing build artifacts
     colcon build || return 1  # Build the workspace
     
-    echo "AMR-tiago workspace rebuilt successfully!"
+    echo "AMR-tiago workspace rebuilt!"
     cd ~  # Return to home directory
+}
+
+# Fresh rebuild for ROS 2 and Tiago workspaces
+build-ws() {
+    # Rebuild ros2_ws
+    echo "Building ros2_ws..."
+    cd ~/AMR-tiago/ros2_ws || { echo "Error: ros2_ws directory not found." >&2; return 1; }
+    colcon build || return 1  # Build the workspace
+    
+    # Rebuild tiago_ws
+    echo "Building tiago_ws..."
+    cd ~/AMR-tiago/tiago_ws || { echo "Error: tiago_ws directory not found." >&2; return 1; }
+    colcon build || return 1  # Build the workspace
+
+    echo "Building pymoveit2..."
+    cd ~/AMR-tiago/tiago_ws/src/pymoveit2-4.1.1/ || { echo "Error: pymoveit2 directory not found." >&2; return 1; }
+    rosdep install -y -r -i --rosdistro ${ROS_DISTRO} --from-paths .
+    colcon build --merge-install --symlink-install --cmake-args "-DCMAKE_BUILD_TYPE=Release"  || return 1
+
+    echo "Building linkattacher..."
+    cd ~/AMR-tiago/tiago_ws/src || { echo "Error: tiago_ws/src directory not found." >&2; return 1; }
+    colcon build --packages-select linkattacher_msgs ros2_linkattacher || return 1
+    
+    echo "All workspaces built!"
+    cd ~  # Return to home directory
+}
+
+build-AMR-tiago() {
+    # Rebuild AMR-tiago
+    echo "Building AMR-tiago..."
+    cd ~/AMR-tiago/exam_ws || { echo "Error: AMR-tiago directory not found." >&2; return 1; }
+    colcon build || return 1  # Build the workspace
+    
+    echo "AMR-tiago workspace built!"
+    cd ~  # Return to home directory
+}
+
+run-save-map() {
+    version=$(date +%Y%m%d%H%M%S)
+    mv ~/AMR-tiago/maps/map.pgm ~/AMR-tiago/maps/map_$version.pgm
+    mv ~/AMR-tiago/maps/map.yaml ~/AMR-tiago/maps/map_$version.yaml
+    ros2 run nav2_map_server map_saver_cli -f ~/AMR-tiago/maps/map
 }
 
 # some more ls aliases
 alias ll='ls -alF'
 alias la='ls -A'
 alias l='ls -CF'
-alias run-gazebo='ros2 launch tiago_gazebo tiago_gazebo.launch.py group_number:=32 moveit:=true'
+alias tmux_setup='bash ~/AMR-tiago/tmux/setup_tmux.sh'
+alias run-gazebo='ros2 launch tiago_gazebo tiago_gazebo.launch.py group_number:=32 moveit:=True'
 alias run-rviz-slam='ros2 launch tiago_2dnav tiago_nav_bringup.launch.py is_public_sim:=false rviz:=True slam:=True'
 alias run-rviz='ros2 launch tiago_2dnav tiago_nav_bringup.launch.py is_public_sim:=false rviz:=True map_path:=/home/$USER/AMR-tiago/maps'
-alias run-savemap='ros2 run nav2_map_server map_saver_cli -f ~/AMR-new_map'
 alias run-teleop='ros2 run teleop_twist_keyboard teleop_twist_keyboard'
 alias run-explore-lite='ros2 launch explore_lite explore.launch.py'
 alias run-navigate-to-pose='ros2 run tiago_exam_navigation navigate_to_pose'
+alias run-target-locked='ros2 run tiago_exam_camera target_locked'
+alias run-eyes='ros2 run tiago_exam_camera image_sub'
+alias run-head-joystick='ros2 run tiago_exam_navigation move_head'
+alias run-grasp-pose='ros2 run tiago_exam_arm 2_aruco_grasp_pose_broadcaster'
+alias run-move-arm='ros2 run tiago_exam_arm 3_move_arm'
+alias run-aruco-grab-controller='ros2 run tiago_exam_arm aruco_grab_controller'
+alias run-nav-to-box='ros2 run tiago_exam_navigation navigate_to_box'
+alias run-align-to-box-face='ros2 run tiago_exam_navigation align_to_box_face'
+alias run-state-machine-navigation='ros2 run tiago_exam_navigation state_machine_navigation'
+#alias run-pick-and-place= 'ros2 run tiago_exam_arm 4_pick_and_place'
 
 # Add an "alert" alias for long running commands.  Use like so:
 #   sleep 10; alert
@@ -163,7 +221,7 @@ export TURTLEBOT3_MODEL=burger
 # export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
 
 source /opt/ros/humble/setup.bash
-source ~/ros2_ws/install/setup.bash
-source ~/tiago_ws/install/setup.bash
-source ~/tiago_ws/src/install/setup.bash
+source ~/AMR-tiago/ros2_ws/install/setup.bash
+source ~/AMR-tiago/tiago_ws/install/setup.bash
 source ~/AMR-tiago/exam_ws/install/setup.bash
+#source ~/AMR-tiago/tiago_ws/src/pymoveit2-4.1.1/install/local_setup.bash

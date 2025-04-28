@@ -1,0 +1,14 @@
+1 - Gazebo
+2 - RViz
+4 - Target (cubes) locking
+5 - Use to investigate
+
+ctrl-a q        change pane
+Ctrl-a c        create tab
+ctrl-a <number> change tab
+Ctrl-a "        horizontal split
+Ctrl-a %        vertical split
+Ctrl-a &        kill everything
+
+
+ros2 topic pub /nav_to_box/done std_msgs/msg/Bool "{data: true}"
