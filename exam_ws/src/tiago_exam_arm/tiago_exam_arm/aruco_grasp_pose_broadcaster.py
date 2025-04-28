@@ -13,7 +13,7 @@ from std_msgs.msg import Bool
 
 class ArucoGraspBroadcaster(Node):
     def __init__(self):
-        super().__init__('aruco_subscriber')
+        super().__init__('aruco_grasp_pose_broadcaster')
         
         self.create_subscription(Bool, '/move_arm/done', self.move_arm_done_callback, 10)
         self.create_subscription(Bool, '/move_arm/get_frames', self.move_arm_get_frames_callback, 10)

@@ -23,8 +23,6 @@ setup(
     entry_points={
         'console_scripts': [
             'task_manager = tiago_task_manager.task_manager:main',
-            'go_to_center = tiago_task_manager.go_to_center:main',
-            'spin_at_center = tiago_task_manager.spin:main',
         ],
     },
 )

@@ -27,7 +27,7 @@ from std_msgs.msg import Bool
 class TiagoArucoGrasp(Node):
 
     def __init__(self, action=None):
-        super().__init__('tiago_aruco_grasp')
+        super().__init__('move_arm')
         
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
@@ -273,7 +273,6 @@ class TiagoArucoGrasp(Node):
                 self.run_node('link_attacher_client', 'gripper_control', args=['--input_string', 'OPEN'])
                 sleep(3.0)
                 # move arm to a confortable positon
-                # self.navigation_process = self.run_node('tiago_exam_arm', 'fold_arm', args=['1.02',' 0.50', '-1.06',' 0.52', '0.98', '-0.22', '-0.34'])
                 self.navigation_process = self.run_node('tiago_exam_arm', 'fold_arm', args=['2.0',' 0.50', '1.0',' 0.52', '0.98', '-0.22', '-0.34'])
                 self.done_get_frames.publish(Bool(data=True))
                 self.move_state = "APPROACH"
@@ -297,12 +296,6 @@ class TiagoArucoGrasp(Node):
                     self.move_state = "TRANSPORT"
                 self.get_logger().info("Gripper closed, lifting marker")
                 
-            # elif self.move_state == "LIFT":
-            #     if self.move_to_frame(self.approach_frame):
-            #         self.get_logger().info("LIFT position reached, moving to TRANSPORT state")
-            #         self.move_state = "TRANSPORT"
-            #     sleep(3.0)
-                
             elif self.move_state == "TRANSPORT":
                 self.navigation_process = self.run_node('tiago_exam_arm', 'fold_arm', args=['2.0',' 0.50', '1.0',' 0.52', '0.98', '-0.22', '-0.34'])
                 self.get_logger().info("Marker lifted, task complete!")
@@ -322,15 +315,7 @@ class TiagoArucoGrasp(Node):
             self.get_logger().info(f"Current state: {self.move_state}")
             
             if self.move_state == "INIT":
-            #     self.navigation_process = self.run_node('tiago_exam_arm', 'fold_arm')
-            #     sleep(10.0)
-            #     self.move_state = "HOVER_THE_TABLE"
-                
-            # elif self.move_state == "HOVER_THE_TABLE":
-                # self.navigation_process = self.run_node('tiago_exam_arm', 'fold_arm', args=['1.02','0.50', '-1.06',' 0.52', '0.98', '-0.22', '-0.34'])
-                # self.navigation_process = self.run_node('tiago_exam_arm', 'fold_arm', args=['2.0',' 0.50', '1.0',' 0.52', '0.98', '-0.22', '-0.34'])
-                # self.navigation_process = self.run_node('tiago_exam_arm', 'fold_arm', args=['0.0',' 0.50', '1.0',' 1.0', '0.98', '-0.22', '-0.34'])
-                
+
                 if self.action == "PLACE63":
                     self.navigation_process = self.run_node('tiago_exam_arm', 'fold_arm', args=['2.25', '0.40', '0.65', '1.01', '-0.91', '1.10', '0.06']
 )
@@ -363,7 +348,7 @@ class TiagoArucoGrasp(Node):
 def main(args=None):
     rclpy.init(args=args)
 
-    # USAGE: ros2 run tiago_exam_arm 3_move_arm --action PICK63
+    # USAGE: ros2 run tiago_exam_arm move_arm --action PICK63
     
     parser = argparse.ArgumentParser(description='Tiago Aruco Grasp Node')
     parser.add_argument('--action', type=str, choices=['PICK63', 'PICK582', 'PLACE63', 'PLACE582'],
@@ -379,57 +364,3 @@ def main(args=None):
 
 if __name__ == "__main__":
     main()
-
-# def is_position_within_tolerance(self, actual_pos, target_pos, tolerance):
-#         """Check if the end effector is within the specified tolerance of the target position."""
-#         distance = sum((a - t) ** 2 for a, t in zip(actual_pos, target_pos)) ** 0.5
-#         self.get_logger().info(f"Distance to target: {distance:.4f} m (tolerance: {tolerance:.4f} m)")
-#         return distance <= tolerance
-
-# if self.move_to_frame(self.approach_frame):
-#     ee_tf = self.tf_buffer.lookup_transform(
-#         self.robot_base_frame, 
-#         self.ee_frame, 
-#         rclpy.time.Time(), 
-#         rclpy.duration.Duration(seconds=1)
-#     )
-    
-#     if ee_tf is None:
-#         self.get_logger().error("Could not get end effector transform")
-#         sleep(3.0)
-#         continue
-    
-#     actual_pos = [
-#         ee_tf.transform.translation.x,
-#         ee_tf.transform.translation.y,
-#         ee_tf.transform.translation.z
-#     ]
-    
-#     # Get the target approach frame position
-#     approach_tf = self.tf_buffer.lookup_transform(
-#         self.robot_base_frame, 
-#         self.approach_frame, 
-#         rclpy.time.Time(),
-#         rclpy.duration.Duration(seconds=1)
-#     )
-    
-#     if approach_tf is None:
-#         self.get_logger().error("Could not get approach frame transform")
-#         sleep(3.0)
-#         continue
-        
-#     target_pos = [
-#         approach_tf.transform.translation.x,
-#         approach_tf.transform.translation.y,
-#         approach_tf.transform.translation.z
-#     ]
-    
-#     # Check if we're close enough
-#     position_tolerance = 0.02  # 2 cm tolerance - adjust as needed
-#     if self.is_position_within_tolerance(actual_pos, target_pos, position_tolerance):
-#         self.get_logger().info("Approach position reached within tolerance, moving to GRASP state")
-#         self.move_state = "GRASP"
-#     else:
-#         self.get_logger().warning("Not close enough to approach frame, retrying approach")
-
-# sleep(3.0)

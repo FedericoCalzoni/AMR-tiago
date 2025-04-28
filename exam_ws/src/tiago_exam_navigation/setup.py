@@ -31,14 +31,7 @@ setup(
     license='Apache-2.0',
     tests_require=['pytest'],
     entry_points={
-        'console_scripts': [
-            # Debugging executables
-            'navigation_client = tiago_exam_navigation.navigation_client:main',
-            'manipulation_client = tiago_exam_navigation.manipulation_client:main',
-            
-            # Main task executor
-            'task_manager = tiago_exam_navigation.task_manager:main',
-            
+        'console_scripts': [            
             # Utilities
             'navigate_to_pose = tiago_exam_navigation.navigate_to_pose:main',
             'move_head = tiago_exam_navigation.move_head:main',

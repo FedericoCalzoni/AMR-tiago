@@ -20,18 +20,12 @@ setup(
     tests_require=['pytest'],
     entry_points={
         "console_scripts": [
-            "1_aruco_tf_subscriber = tiago_exam_arm.1_aruco_tf_subscriber:main",
-            "2_aruco_grasp_pose_broadcaster = tiago_exam_arm.2_aruco_grasp_pose_broadcaster:main",
-            "3_move_arm = tiago_exam_arm.3_move_arm:main",
-            "4_pick_and_place = tiago_exam_arm.4_pick_and_place:main",
-            "aruco_grab_controller = tiago_exam_arm.aruco_grab_controller:main",
+            "aruco_grasp_pose_broadcaster = tiago_exam_arm.aruco_grasp_pose_broadcaster:main",
+            "fold_arm = tiago_exam_arm.fold_arm:main",
             "initialize_arm = tiago_exam_arm.initialize_arm:main",
-            "basic_gripper = tiago_exam_arm.basic_gripper:main",
-            "basic_joints = tiago_exam_arm.basic_joints:main",
-            "basic_pose = tiago_exam_arm.basic_pose:main",
+            "move_arm = tiago_exam_arm.move_arm:main",
             "publish_aruco_cube = tiago_exam_arm.publish_aruco_cube:main", 
             "tf_broadcaster = tiago_exam_arm.tf_broadcaster:main",
-            "fold_arm = tiago_exam_arm.fold_arm:main",
         ],
     },
 )

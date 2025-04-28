@@ -331,9 +331,6 @@ class BoxFaceNavigator(Node):
         target_position = face_center + 0.15 * x_axis  # Move away from the face
         
         # Calculate yaw from the x_axis + check wheter they are aligned but pointing in opposite directions
-        #self.get_logger().info(f"prima componente: {x_axis[0]}")
-        #self.get_logger().info(f"seconda copmponente: {x_axis[0]}")
-        # normal will be uscente dalla faccia, x axis will point toward the face -> default yaw = 180 ergo: np.pi - ...
         yaw = math.atan2(x_axis[1], x_axis[0])
         if yaw > 0:
             yaw = yaw - np.pi

@@ -82,9 +82,8 @@ class GripperController(Node):
 
         point = JointTrajectoryPoint()
         
-        #  The maxium gripper opening is 0.065 m but it gives issues,
-        #  so we set it to 0.060 m
-        #  Close gripper to 0.030 m since aruco_cube_exam_id582 is 0.06 m
+        #  The maxium gripper opening is 0.065
+        #  aruco_cube_exam_id582 is big 0.06 m
         point.positions = [0.064, 0.064] if self.open_gripper else [0.037, 0.037]
         point.time_from_start = Duration(sec=1, nanosec=0)
         goal_msg.trajectory.points = [point]

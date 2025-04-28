@@ -82,8 +82,8 @@ class TaskManager(Node):
                 self.move_arm_done = False
                 self.node_launched = True
                 self.run_node_subprocess("tiago_exam_camera", "target_locked", ["63"])
-                self.run_node_subprocess("tiago_exam_arm", "2_aruco_grasp_pose_broadcaster")
-                self.run_node_subprocess("tiago_exam_arm", "3_move_arm", args=['--action', 'PICK63'])
+                self.run_node_subprocess("tiago_exam_arm", "aruco_grasp_pose_broadcaster")
+                self.run_node_subprocess("tiago_exam_arm", "move_arm", args=['--action', 'PICK63'])
                 
             if self.move_arm_done:
                 self.get_logger().info("Arm movement completed")
@@ -108,7 +108,7 @@ class TaskManager(Node):
                 self.get_logger().info("PLACE_CUBE_63: Move the arm to place the cube")
                 self.node_launched = True
                 self.move_arm_done = False
-                self.run_node_subprocess("tiago_exam_arm", "3_move_arm", args=['--action', 'PLACE63'])
+                self.run_node_subprocess("tiago_exam_arm", "move_arm", args=['--action', 'PLACE63'])
                 
             if self.move_arm_done:
                 self.get_logger().info("Arm movement completed")
@@ -133,8 +133,8 @@ class TaskManager(Node):
                 self.node_launched = True
                 self.move_arm_done = False
                 self.run_node_subprocess("tiago_exam_camera", "target_locked", ["582"])
-                self.run_node_subprocess("tiago_exam_arm", "2_aruco_grasp_pose_broadcaster")
-                self.run_node_subprocess("tiago_exam_arm", "3_move_arm", args=['--action', 'PICK582'])
+                self.run_node_subprocess("tiago_exam_arm", "aruco_grasp_pose_broadcaster")
+                self.run_node_subprocess("tiago_exam_arm", "move_arm", args=['--action', 'PICK582'])
                 
             if self.move_arm_done:
                 self.get_logger().info("PICK_CUBE_582: Completed")
@@ -159,7 +159,7 @@ class TaskManager(Node):
                 self.get_logger().info("PLACE_CUBE_582: Move the arm to place the cube")
                 self.node_launched = True
                 self.move_arm_done = False
-                self.run_node_subprocess("tiago_exam_arm", "3_move_arm", args=['--action', 'PLACE582'])
+                self.run_node_subprocess("tiago_exam_arm", "move_arm", args=['--action', 'PLACE582'])
                 
             if self.move_arm_done:
                 self.get_logger().info("PLACE_CUBE_582: Completed")
