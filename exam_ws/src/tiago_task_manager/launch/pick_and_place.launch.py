@@ -1,12 +1,5 @@
 from launch import LaunchDescription
-from launch.actions import (
-    IncludeLaunchDescription,
-    TimerAction,
-    RegisterEventHandler,
-    LogInfo, 
-    
-    
-)
+from launch.actions import IncludeLaunchDescription,TimerAction,LogInfo
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.event_handlers import OnProcessStart
 from launch.substitutions import PathJoinSubstitution, EnvironmentVariable, LaunchConfiguration
@@ -58,41 +51,21 @@ def generate_launch_description():
             rviz_launch
         ]
     )
+    
 
-    # 3. Launch State Machine directly as a node (instead of a launch file)
-    # Now running as a direct node with a delay of 25 seconds
+    # 3. Launch the TaskManager node instead of state_machine
     state_machine_node = TimerAction(
         period=25.0,
         actions=[
             Node(
-                package='tiago_exam_navigation',
-                executable='state_machine_navigation',
-                name='state_machine_node',
-                output='screen',
-                parameters=[
-                    {'use_sim_time': True}
-                ]
-            )
-        ]
-    )
-    """
-
-    # 3. Launch the TaskManager node instead of state_machine
-    task_manager_node = TimerAction(
-        period=25.0,
-        actions=[
-            Node(
                 package='tiago_task_manager',  
-                executable='master_state_machine',          
+                executable='task_manager',          
                 name='task_manager_node',
-                output='screen',
-                parameters=[
-                    {'use_sim_time': True}
-                ]
+                output='screen'
             )
         ]
     )
-    """
+    
     return LaunchDescription([
         LogInfo(msg='Starting Gazebo with TIAGo...'),
         gazebo_launch,

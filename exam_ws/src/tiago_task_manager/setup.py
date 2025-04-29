@@ -10,10 +10,8 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
-        ('share/' + package_name + '/launch', ['launch/bringup_and_task.launch.py']),
-        ("share/" + package_name, glob('launch/unified_tiago_launch.py')),
-        ("share/" + package_name, glob('launch/unified_tiago_mod.launch.py')),
-
+        ('share/' + package_name + '/launch', ['launch/pick_and_place.launch.py']),
+        ('share/' + package_name + '/launch', ['launch/mapping.launch.py']),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -24,6 +22,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            'mapping_manager = tiago_task_manager.mapping_manager:main',
             'task_manager = tiago_task_manager.task_manager:main',
         ],
     },

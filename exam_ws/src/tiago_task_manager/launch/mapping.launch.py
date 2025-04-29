@@ -1,14 +1,6 @@
 from launch import LaunchDescription
-from launch.actions import (
-    IncludeLaunchDescription,
-    TimerAction,
-    RegisterEventHandler,
-    LogInfo,
-)
+from launch.actions import (IncludeLaunchDescription,TimerAction,LogInfo,)
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.event_handlers import OnProcessStart
-from launch.substitutions import PathJoinSubstitution, EnvironmentVariable, LaunchConfiguration
-from launch_ros.substitutions import FindPackageShare
 from ament_index_python.packages import get_package_share_directory
 from launch_ros.actions import Node
 import os
@@ -17,13 +9,6 @@ def generate_launch_description():
     # Path definitions
     tiago_gazebo_dir = get_package_share_directory('tiago_gazebo')
     tiago_2dnav_dir = get_package_share_directory('tiago_2dnav')
-    
-    # Ottieni il percorso home in modo affidabile
-    home_dir = os.path.expanduser('~')
-    map_path = os.path.join(home_dir, 'AMR-tiago/maps')
-    
-    # Define path to the navigation parameters
-    nav_params_file = os.path.join(home_dir, 'AMR-tiago/tiago_ws/src/pal_navigation_cfg_public/pal_navigation_cfg_params/params/tiago_nav2.yaml')
     
     # 1. Launch Gazebo with TIAGo
     gazebo_launch = IncludeLaunchDescription(
@@ -36,7 +21,7 @@ def generate_launch_description():
         }.items()
     )
     
-    # 2. Launch navigation stack with RViz (with delay to ensure Gazebo is fully loaded)
+    # 2. Launch RViz with navigation and SLAM
     rviz_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([
             os.path.join(tiago_2dnav_dir, 'launch', 'tiago_nav_bringup.launch.py')
@@ -44,33 +29,28 @@ def generate_launch_description():
         launch_arguments={
             'is_public_sim': 'false',
             'rviz': 'True',
-            'map_path': map_path,
-            'params_file': nav_params_file,
-            'use_sim_time': 'true'
+            'slam': 'True'  # Enable SLAM as requested
         }.items()
     )
     
     # Delay RViz launch to ensure Gazebo is fully loaded
     delayed_rviz = TimerAction(
-        period=10.0,  # Adjust this delay as needed (in seconds)
+        period=10.0,  # Delay in seconds, adjust as needed
         actions=[
-            LogInfo(msg='Starting RViz and navigation stack...'),
+            LogInfo(msg='Starting RViz with navigation and SLAM...'),
             rviz_launch
         ]
     )
     
-    # 3. Launch the TaskManager node instead of state_machine_navigation
-    task_manager_node = TimerAction(
+    # 3. Launch the TaskManager node instead of state_machine
+    state_machine_node = TimerAction(
         period=25.0,
         actions=[
             Node(
-                package='tiago_exam_task_manager',  
-                executable='task_manager',          
+                package='tiago_task_manager',  
+                executable='mapping_manager',          
                 name='task_manager_node',
-                output='screen',
-                parameters=[
-                    {'use_sim_time': True}
-                ]
+                output='screen'
             )
         ]
     )
@@ -79,6 +59,6 @@ def generate_launch_description():
         LogInfo(msg='Starting Gazebo with TIAGo...'),
         gazebo_launch,
         delayed_rviz,
-        LogInfo(msg='Starting Task Manager...'),
-        task_manager_node,
+        LogInfo(msg='Starting Mapping...'),
+        state_machine_node,
     ])
