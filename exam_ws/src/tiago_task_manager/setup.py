@@ -11,6 +11,8 @@ setup(
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
         ('share/' + package_name + '/launch', ['launch/bringup_and_task.launch.py']),
+        ("share/" + package_name, glob('launch/unified_tiago_launch.py')),
+        ("share/" + package_name, glob('launch/unified_tiago_mod.launch.py')),
 
     ],
     install_requires=['setuptools'],
