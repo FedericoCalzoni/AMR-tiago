@@ -81,6 +81,7 @@ class ArucoCubeDetection(Node):
                     rvec, tvec, _ = cv2.aruco.estimatePoseSingleMarkers(
                         corners[i], marker_size, self.camera_matrix, self.dist_coeffs
                     )
+                    # rvec represents the rotation vector, tvec represents the translation vector
                     rot_matrix, _ = cv2.Rodrigues(rvec[0])
                     normal = rot_matrix[:, 2]
                     x_component = abs(normal[0])

@@ -98,18 +98,21 @@ rebuild-ws() {
     cd ~/AMR-tiago/ros2_ws || { echo "Error: ros2_ws directory not found." >&2; return 1; }
     trash build install log  # Clean existing build artifacts
     colcon build || return 1  # Build the workspace
+    source ~/AMR-tiago/ros2_ws/install/setup.bash
     
     # Rebuild tiago_ws
     echo "Rebuilding tiago_ws..."
     cd ~/AMR-tiago/tiago_ws || { echo "Error: tiago_ws directory not found." >&2; return 1; }
     trash build install log  # Clean existing build artifacts
     colcon build || return 1  # Build the workspace
+    source ~/AMR-tiago/tiago_ws/install/setup.bash
 
     echo "Building pymoveit2..."
     cd ~/AMR-tiago/tiago_ws/src/pymoveit2-4.1.1/ || { echo "Error: pymoveit2 directory not found." >&2; return 1; }
     trash build install log  # Clean existing build artifacts
     rosdep install -y -r -i --rosdistro ${ROS_DISTRO} --from-paths .
     colcon build --merge-install --symlink-install --cmake-args "-DCMAKE_BUILD_TYPE=Release"
+    source ~/AMR-tiago/tiago_ws/src/pymoveit2-4.1.1/install/local_setup.bash
     
     echo "All workspaces rebuilt!"
     cd ~  # Return to home directory
@@ -121,6 +124,7 @@ rebuild-AMR-tiago() {
     cd ~/AMR-tiago/exam_ws || { echo "Error: AMR-tiago directory not found." >&2; return 1; }
     trash build install log  # Clean existing build artifacts
     colcon build || return 1  # Build the workspace
+    source ~/AMR-tiago/exam_ws/install/setup.bash
     
     echo "AMR-tiago workspace rebuilt!"
     cd ~  # Return to home directory
@@ -132,20 +136,24 @@ build-ws() {
     echo "Building ros2_ws..."
     cd ~/AMR-tiago/ros2_ws || { echo "Error: ros2_ws directory not found." >&2; return 1; }
     colcon build || return 1  # Build the workspace
+    source ~/AMR-tiago/ros2_ws/install/setup.bash
     
     # Rebuild tiago_ws
     echo "Building tiago_ws..."
     cd ~/AMR-tiago/tiago_ws || { echo "Error: tiago_ws directory not found." >&2; return 1; }
     colcon build || return 1  # Build the workspace
+    source ~/AMR-tiago/tiago_ws/install/setup.bash
 
     echo "Building pymoveit2..."
     cd ~/AMR-tiago/tiago_ws/src/pymoveit2-4.1.1/ || { echo "Error: pymoveit2 directory not found." >&2; return 1; }
     rosdep install -y -r -i --rosdistro ${ROS_DISTRO} --from-paths .
     colcon build --merge-install --symlink-install --cmake-args "-DCMAKE_BUILD_TYPE=Release"  || return 1
+    source ~/AMR-tiago/tiago_ws/src/pymoveit2-4.1.1/install/local_setup.bash
 
     echo "Building linkattacher..."
     cd ~/AMR-tiago/tiago_ws/src || { echo "Error: tiago_ws/src directory not found." >&2; return 1; }
     colcon build --packages-select linkattacher_msgs ros2_linkattacher || return 1
+    source ~/AMR-tiago/tiago_ws/install/setup.bash
     
     echo "All workspaces built!"
     cd ~  # Return to home directory
@@ -156,6 +164,7 @@ build-AMR-tiago() {
     echo "Building AMR-tiago..."
     cd ~/AMR-tiago/exam_ws || { echo "Error: AMR-tiago directory not found." >&2; return 1; }
     colcon build || return 1  # Build the workspace
+    source ~/AMR-tiago/exam_ws/install/setup.bash
     
     echo "AMR-tiago workspace built!"
     cd ~  # Return to home directory
