@@ -2,6 +2,7 @@ import time
 import rclpy
 import numpy as np
 from rclpy.node import Node
+from std_msgs.msg import Bool
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseWithCovarianceStamped, Twist
 
@@ -11,6 +12,7 @@ class InitialPositionNode(Node):
 
         self.odom_subscription = self.create_subscription(PoseWithCovarianceStamped, '/amcl_pose', self.amcl_callback, 10)
         self.amcl_pose_publisher = self.create_publisher(PoseWithCovarianceStamped, '/initialpose', 10)
+        self.done_publisher = self.create_publisher(Bool, '/localization/done', 10)
         self.odometry_subscription = self.create_subscription(Odometry, '/mobile_base_controller/odom', self.odom_callback, 10)
         self.publisher = self.create_publisher(Twist, "/cmd_vel", 10)
         self.covariance_threshold = 0.10
@@ -67,6 +69,7 @@ class InitialPositionNode(Node):
             rclpy.spin_once(self, timeout_sec=1)
             if self.check_covariance():
                 self.get_logger().info('Localization completed.')
+                self.done_publisher.publish(Bool(data=True))
                 break
 
     def check_covariance(self):
