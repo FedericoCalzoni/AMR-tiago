@@ -16,12 +16,14 @@ class TaskManager(Node):
         self.create_subscription(Bool, '/state_machine_navigation/done', self.navigation_callback, 10)
         self.done_publisher = self.create_publisher(Bool, '/state_machine_navigation/done', 10)
         self.create_subscription(Bool, '/move_arm/done', self.move_arm_callback, 10)
+        self.create_subscription(Bool, '/localization/done', self.localization_done_callback, 10)
         self.navigation_done = False
         self.move_arm_done = False
+        self.node_termination = False
         
         callback_group = ReentrantCallbackGroup()
         
-        self.state = 'MOVE_TO_PICK_63'
+        self.state = 'LOCALIZATION'
         
         # Setup executor for background tasks
         executor = rclpy.executors.MultiThreadedExecutor(4)
@@ -44,6 +46,10 @@ class TaskManager(Node):
         """Callback for arm movement completion."""
         if msg.data == True:
             self.move_arm_done = True
+            
+    def localization_done_callback(self, msg):
+        if msg.data:
+            self.node_termination = True
             
     def run_node_subprocess(self, package, node, args=None):
         """Run a ROS2 node as a subprocess."""
@@ -69,7 +75,26 @@ class TaskManager(Node):
     
     def fsm_step(self):
         """Master state machine step for the pick and place task."""
-        if self.state == 'MOVE_TO_PICK_63':
+        if self.state == 'LOCALIZATION':
+            if not self.node_launched:
+                self.get_logger().info("LOCALIZATION: Starting localization")
+                self.run_node('tiago_exam_arm', 'fold_arm')
+                self.run_node_subprocess("tiago_exam_navigation", "localization")
+                self.node_launched = True
+                
+            if self.node_termination:
+                self.get_logger().info("LOCALIZATION: Completed")
+                self.state = 'RETURN_TO_START'
+                self.node_launched = False
+                self.node_termination = False
+        
+        elif self.state == 'RETURN_TO_START':
+            self.get_logger().info("RETURN_TO_START")
+            self.run_node("tiago_exam_navigation", "navigate_to_pose", args=['--goal', '0.0', '0.0', '0.0'])
+            self.state = 'MOVE_TO_PICK_63'
+            
+            
+        elif self.state == 'MOVE_TO_PICK_63':
             if not self.node_launched:
                 self.get_logger().info("MOVE_TO_PICK_63: Starting navigation to pick box")
                 self.run_node_subprocess("tiago_exam_navigation", "state_machine_navigation")
