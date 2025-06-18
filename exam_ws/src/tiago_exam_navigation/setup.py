@@ -38,6 +38,7 @@ setup(
             'move_head_to_pose = tiago_exam_navigation.move_head_to_pose:main',
             'navigate_to_box = tiago_exam_navigation.navigate_to_box:main',
             'align_to_box_face = tiago_exam_navigation.align_to_box_face:main',
+            'localization = tiago_exam_navigation.localization:main',
 
             # State machine
             'state_machine_navigation = tiago_exam_navigation.state_machine_navigation:main',

@@ -1,12 +1,12 @@
-import rclpy
-from rclpy.node import Node
-from geometry_msgs.msg import PoseWithCovarianceStamped, Twist
 import time
+import rclpy
 import numpy as np
+from rclpy.node import Node
 from nav_msgs.msg import Odometry
+from geometry_msgs.msg import PoseWithCovarianceStamped, Twist
 
-TWO_PI = 6.28
-ROTATION_VELOCITY = -0.4
+TWO_PI = 2 * np.pi
+ROTATION_VELOCITY = -0.3
 
 class InitialPositionNode(Node):
     def __init__(self):
@@ -72,7 +72,7 @@ class InitialPositionNode(Node):
         initial_pose_msg.pose.pose.orientation.z = float(self.tiago_orientation[2])
         initial_pose_msg.pose.pose.orientation.w = float(self.tiago_orientation[3])
         
-        # Set covariance (ensure it's a list/tuple of 36 floats)
+        # Set covariance
         initial_pose_msg.pose.covariance = tuple(float(x) for x in self.covariance_values)
         
         self.amcl_pose_publisher.publish(initial_pose_msg)
